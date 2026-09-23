@@ -785,7 +785,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       </ul>
     </div>
     <div class="row">
-      <button id="btnOpen2" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button>
+      <button id="btnOpen2" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button><button id="btnOpenDrive">☁ 구글 드라이브</button>
     </div>
     <div class="hint">.mm · OPML · Markdown · CSV · 텍스트 — 파일을 이 화면에 끌어다 놓아도 열립니다</div>
     <div id="recentsWrap" style="margin-top:30px" hidden>
@@ -812,7 +812,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
     </div>
     <div class="frow0">
       <button id="fcBtnNew"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="2.8" y="3.4" width="14.4" height="13.2" rx="3.2"/><path d="M10 7.2v5.6M7.2 10h5.6"/></svg>새 덱</button>
-      <button id="fcBtnOpen" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button>
+      <button id="fcBtnOpen" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button><button id="fcBtnOpenDrive">☁ 구글 드라이브</button>
     </div>
     <div class="hint">CSV · TSV · TXT · Markdown · JSON — 파일을 이 화면에 끌어다 놓아도 열립니다</div>
     <div id="fcHomeDaily"></div>
@@ -3977,7 +3977,7 @@ function readFile(f,via){
 $("fileInput").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;readFile(f,"input");e.target.value="";
 });
-$("btnOpen2").addEventListener("click",openWithPicker);
+$("btnOpen2").addEventListener("click",openWithPicker); $("btnOpenDrive").addEventListener("click",()=>openDriveModal("map"));
 addEventListener("dragover",e=>{e.preventDefault();(tab==="reader"?$("empty"):$("fcEmpty")).classList.add("drag");});
 addEventListener("dragleave",()=>{$("empty").classList.remove("drag");$("fcEmpty").classList.remove("drag");});
 addEventListener("drop",e=>{
@@ -6309,7 +6309,7 @@ function renderFcRecents(){
 $("fcFileInput").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;fcReadFile(f,"input");e.target.value="";
 });
-$("fcBtnOpen").addEventListener("click",fcOpenWithPicker);
+$("fcBtnOpen").addEventListener("click",fcOpenWithPicker); $("fcBtnOpenDrive").addEventListener("click",()=>openDriveModal("cards"));
 $("fcBtnNew").addEventListener("click",fcNew);
 $("fcVList").addEventListener("click",()=>{fcView="list";fcRender();});
 $("fcVStudy").addEventListener("click",()=>{fcView="study";fcRender();});
