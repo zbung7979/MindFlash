@@ -455,6 +455,29 @@ body:has(#ttsBar:not(.hidden)) #toast{bottom:58px}
 #fcEmpty .frow0 button{padding:11px 22px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:14.5px;font-weight:500;color:var(--c0t)}
 #fcEmpty .frow0 button.pri{background:#5b5470;color:#fff;border-color:#5b5470}
 #fcEmpty .hint{font-size:10px;color:var(--muted);margin-top:14px;text-align:center;line-height:1.6;letter-spacing:-.1px}
+
+/* ── 첫 화면: 구글 드라이브 폴더 뷰(로그인 안내 / 인라인 탐색기) ── */
+.driveGate{max-width:420px;margin:6vh auto 0;padding:26px 20px;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-align:center}
+.driveGateIcon{font-size:34px;line-height:1}
+.driveGateText{margin-top:10px;font-size:13.5px;color:var(--muted);line-height:1.5}
+.driveGateWarn{margin-top:10px;font-size:11.5px;color:#c14a36}
+.driveGate button.pri{margin-top:16px;padding:11px 22px;border-radius:10px;border:1px solid #5b5470;background:#5b5470;color:#fff;font-size:14.5px;font-weight:600}
+.driveInline{max-width:640px;margin:5vh auto 0;text-align:left;padding:0 22px}
+.driveInlineBar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.driveInlineTitle{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--c0t)}
+.driveInlineBtns{display:flex;gap:6px;flex:none}
+/* ── 첫 화면 인라인 탐색기: 탐색기 왼쪽 트리처럼 펼침/접힘되는 폴더 트리 ── */
+.driveTree{margin-top:2px}
+.dtRow{display:flex;align-items:center;gap:6px;padding:7px 4px;border-radius:8px;cursor:pointer}
+.dtRow:hover{background:var(--rowhover)}
+.dtChevron{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;transition:transform .12s ease}
+.dtChevron.open{transform:rotate(90deg)}
+.dtIcon{flex:none;font-size:13.5px;width:16px;text-align:center}
+.dtName{flex:1;min-width:0;font-size:13px;color:var(--c0t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dtMeta{flex:none;font-size:10.5px;color:var(--muted)}
+.dtNewBtn{flex:none;font-size:12.5px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:6px;width:22px;height:22px;line-height:1;background:var(--panel);opacity:.6}
+.dtNewBtn:hover{opacity:1;background:var(--rowhover)}
+.dtLoading,.dtEmptyNode{color:var(--muted);font-size:11.5px;padding:3px 4px 6px}
 #fcEmpty.drag{outline:3px dashed #b9aed0;outline-offset:-14px}
 
 /* ── 플래시카드: 덱 화면 ── */
@@ -773,24 +796,25 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <main id="readerMain">
   <div id="empty">
-    <h1><svg class="heroIco" viewBox="0 0 48 48" fill="none" stroke="var(--chev)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 15.4V10.4M24 32.6v5M15.4 24H10.4M32.6 24h5" opacity=".5"/><circle cx="24" cy="7.2" r="3.3"/><circle cx="7.2" cy="24" r="3.3"/><circle cx="40.8" cy="24" r="3.3"/><circle cx="24" cy="40.8" r="3.3"/><rect x="15.6" y="15.6" width="16.8" height="16.8" rx="5.6" fill="var(--panel)"/><circle cx="20.7" cy="22.1" r="1.55" fill="var(--chev)" stroke="none"/><circle cx="27.3" cy="22.1" r="1.55" fill="var(--chev)" stroke="none"/><path d="M21.2 27.3c1.5 1.6 4.1 1.6 5.6 0"/></svg><span>마인드맵</span></h1>
-    <div class="descBox">
-      <ul>
-        <li>마인드맵(.mm)·OPML·Markdown·CSV 파일을 개요 형식으로 보여 주는 뷰어입니다.</li>
-        <li>노드 카드를 누르면 펼쳐지고, 다시 누르면 접힙니다.</li>
-        <li>노드를 <b>길게 누르면</b> 수정 버튼이 나타납니다.</li>
-        <li>노드를 <b>마우스로 끌어</b> 다른 노드 위·아래·안에 놓아 이동할 수 있습니다.</li>
-        <li>제목 아래 검색창에서 노드를 찾고, 깔때기 버튼의 필터창에 텍스트·이모지를 입력하면 그 문자가 포함된 노드만 표시됩니다.</li>
-        <li>우측 상단에서 다크모드·색감·글자 크기·글꼴을 바꿀 수 있습니다.</li>
-      </ul>
+    <div id="driveGateMap" class="driveGate">
+      <div class="driveGateIcon">☁</div>
+      <div class="driveGateText">구글 드라이브에 로그인하면 여기에 마인드맵 폴더가 바로 보여요</div>
+      <button id="driveGateLoginMap" class="pri">구글 계정으로 로그인</button>
+      <div id="driveGateWarnMap" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
+      <div id="recentsWrap" style="margin-top:26px;text-align:left" hidden>
+        <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;justify-content:space-between"><span>📁 최근 파일</span><span style="font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span></div>
+        <div id="recents"></div>
+      </div>
     </div>
-    <div class="row">
-      <button id="btnOpen2" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button><button id="btnOpenDrive">☁ 구글 드라이브</button>
-    </div>
-    <div class="hint">.mm · OPML · Markdown · CSV · 텍스트 — 파일을 이 화면에 끌어다 놓아도 열립니다</div>
-    <div id="recentsWrap" style="margin-top:30px" hidden>
-      <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;justify-content:space-between"><span>📁 최근 파일</span><span style="font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span></div>
-      <div id="recents"></div>
+    <div id="driveInlineMap" class="driveInline" hidden>
+      <div class="driveInlineBar">
+        <div class="driveInlineTitle">📁 마인드맵</div>
+        <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact driveInlineSync">↻ 동기화</button>
+        </div>
+      </div>
+      <div class="driveTree"></div>
     </div>
   </div>
   <div id="list"></div>
@@ -798,28 +822,27 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <main id="fcMain">
   <div id="fcEmpty">
-    <h1><svg class="heroIco" viewBox="0 0 48 48" fill="none" stroke="var(--chev)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="12.4" y="7.6" width="26" height="16.6" rx="4.4" opacity=".45" transform="rotate(7 25.4 15.9)"/><rect x="8.6" y="17.2" width="30.8" height="22" rx="5.6" fill="var(--panel)"/><circle cx="19.8" cy="26.4" r="1.6" fill="var(--chev)" stroke="none"/><circle cx="28.2" cy="26.4" r="1.6" fill="var(--chev)" stroke="none"/><path d="M19.4 31.6c2.4 2.3 6.8 2.3 9.2 0"/></svg><span>플래시카드</span></h1>
-    <div class="descBox">
-      <ul>
-        <li>문제와 답이 한 짝인 플래시카드를 덱 단위로 공부하는 탭입니다.</li>
-        <li>CSV·TSV·TXT·Markdown·JSON 파일을 열면 하나의 덱으로 불러옵니다.</li>
-        <li><b>모두 보이기</b>는 개요처럼 목록에 문제를 나열하고 누르면 답이 펼쳐집니다.</li>
-        <li><b>하나씩 학습하기</b>는 카드를 눌러 뒤집으며 한 장씩 외웁니다.</li>
-        <li>외운 카드를 체크하면 진도가 저장되고, 외운 것만·안 외운 것만 골라 다시 볼 수 있습니다.</li>
-        <li>모두 보이기 화면의 필터창에 텍스트·이모지를 입력하면 그 문자가 포함된 카드만 남습니다.</li>
-        <li>마인드맵 탭에서 노드를 <b>카드로 변환</b>하거나, 더보기 메뉴의 <b>노드 골라서 변환·플래시카드 덱으로 변환</b>으로 여러 노드를 골라 한 번에 이 탭의 덱으로 보낼 수 있습니다.</li>
-      </ul>
+    <div id="driveGateCards" class="driveGate">
+      <div class="driveGateIcon">☁</div>
+      <div class="driveGateText">구글 드라이브에 로그인하면 여기에 플래시카드 폴더가 바로 보여요</div>
+      <button id="driveGateLoginCards" class="pri">구글 계정으로 로그인</button>
+      <div id="driveGateWarnCards" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
+      <div id="fcRecentsWrap" style="margin-top:26px;text-align:left" hidden>
+        <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;gap:8px"><span>🗂 최근 덱</span><span style="flex:1;font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span><button id="fcMgr" style="font-size:12px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel)">관리</button></div>
+        <div id="fcRecents"></div>
+      </div>
     </div>
-    <div class="frow0">
-      <button id="fcBtnNew"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="2.8" y="3.4" width="14.4" height="13.2" rx="3.2"/><path d="M10 7.2v5.6M7.2 10h5.6"/></svg>새 덱</button>
-      <button id="fcBtnOpen" class="pri"><svg class="bico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.7 6.3a1.9 1.9 0 011.9-1.9h3l1.7 2h5.1a1.9 1.9 0 011.9 1.9v6.1a1.9 1.9 0 01-1.9 1.9H4.6a1.9 1.9 0 01-1.9-1.9z"/><path d="M3 9.7h14"/></svg>파일 열기</button><button id="fcBtnOpenDrive">☁ 구글 드라이브</button>
+    <div id="driveInlineCards" class="driveInline" hidden>
+      <div class="driveInlineBar">
+        <div class="driveInlineTitle">📁 플래시카드</div>
+        <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact driveInlineSync">↻ 동기화</button>
+        </div>
+      </div>
+      <div class="driveTree"></div>
     </div>
-    <div class="hint">CSV · TSV · TXT · Markdown · JSON — 파일을 이 화면에 끌어다 놓아도 열립니다</div>
     <div id="fcHomeDaily"></div>
-    <div id="fcRecentsWrap" style="margin-top:30px" hidden>
-      <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;gap:8px"><span>🗂 최근 덱</span><span style="flex:1;font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span><button id="fcMgr" style="font-size:12px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel)">관리</button></div>
-      <div id="fcRecents"></div>
-    </div>
   </div>
   <div id="fcDeck" style="display:none">
     <div id="fcViewRow">
@@ -1307,7 +1330,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
           <input type="text" id="driveFolderLinkInput" placeholder="드라이브 폴더 링크(또는 ID) 붙여넣기">
           <button id="driveFolderLinkGo">연결</button>
         </div>
-        <p class="phint" style="margin-top:0">이 화면에서 보고 있던 <b id="driveKindLabel">항목</b>을 드라이브에 새로 저장하거나, 폴더 안의 파일을 목록에서 열 수 있어요</p>
+        <p class="phint" style="margin-top:0">폴더를 눌러 들어가거나 "새 폴더"로 과목·단원별로 정리할 수 있어요. 지금 열려 있는 폴더에 <b id="driveKindLabel">항목</b>을 새로 저장하거나, 목록의 파일을 열 수 있어요</p>
         <button id="driveSaveNew" style="width:100%;height:36px;margin-bottom:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;font-weight:600;cursor:pointer">＋ 지금 보는 내용을 드라이브에 새로 저장</button>
         <div id="driveSyncRow" style="display:none;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted)">
           <span id="driveSyncStatus" style="flex:1"></span>
@@ -1359,7 +1382,7 @@ const $=id=>document.getElementById(id);
    불리언으로 남겨서 다음 방문 때 조용히(팝업 없이) 재인증을 시도할지 판단한다.
    GitHub Pages 같은 https 주소로 호스팅해야 동작한다 — file://로 더블클릭해 연
    로컬 파일에서는 구글이 로그인 팝업 자체를 막는다. */
-const DRIVE_CLIENT_ID="254430389576-qi9ji4ocm8vmvcu3udce22n3m0a5ut6f.apps.googleusercontent.com"; /* 구글 클라우드 콘솔에서 발급받은 OAuth 클라이언트 ID를 여기 채운다 */
+const DRIVE_CLIENT_ID="254430389576-qi9ji4ocm8vmvcu3udce22n3m0a5ut6f.apps.googleusercontent.com";
 const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.file";
 const DRIVE_API="https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_API="https://www.googleapis.com/upload/drive/v3";
@@ -1425,20 +1448,26 @@ function driveFolderIdFromLink(input){
   if(/^[a-zA-Z0-9_-]{10,}$/.test(s))return s; /* 링크가 아니라 폴더 ID를 그대로 붙여넣은 경우 */
   return "";
 }
-async function driveFindFolder(name){
-  const qs=encodeURIComponent("name='"+name.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+async function driveFindFolder(name,parentId){
+  let q="name='"+name.replace(/'/g,"\\'")+"' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+  if(parentId)q+=" and '"+parentId+"' in parents";
+  const qs=encodeURIComponent(q);
   const res=await driveApiFetch(DRIVE_API+"/files?q="+qs+"&fields=files(id,name)&spaces=drive");
   const j=await res.json();
   return (j.files&&j.files[0])||null;
 }
-async function driveCreateFolder(name){
-  const res=await driveApiFetch(DRIVE_API+"/files",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder"})});
+/* parentId를 주면 그 폴더 "안에" 하위 폴더를 만든다(탐색기의 "새 폴더") — 안 주면
+   기존처럼 드라이브 최상위에 만든다("MindFlash" 기본 폴더 최초 생성용). */
+async function driveCreateFolder(name,parentId){
+  const meta={name,mimeType:"application/vnd.google-apps.folder"};
+  if(parentId)meta.parents=[parentId];
+  const res=await driveApiFetch(DRIVE_API+"/files",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(meta)});
   return res.json();
 }
-async function driveEnsureFolder(name){
-  const found=await driveFindFolder(name);
+async function driveEnsureFolder(name,parentId){
+  const found=await driveFindFolder(name,parentId);
   if(found)return found;
-  return driveCreateFolder(name);
+  return driveCreateFolder(name,parentId);
 }
 async function driveResolveFolderFromLink(link){
   const id=driveFolderIdFromLink(link);
@@ -3977,7 +4006,6 @@ function readFile(f,via){
 $("fileInput").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;readFile(f,"input");e.target.value="";
 });
-$("btnOpen2").addEventListener("click",openWithPicker); $("btnOpenDrive").addEventListener("click",()=>openDriveModal("map"));
 addEventListener("dragover",e=>{e.preventDefault();(tab==="reader"?$("empty"):$("fcEmpty")).classList.add("drag");});
 addEventListener("dragleave",()=>{$("empty").classList.remove("drag");$("fcEmpty").classList.remove("drag");});
 addEventListener("drop",e=>{
@@ -5226,6 +5254,7 @@ function setTab(t){
   $("readerMain").style.display=t==="reader"?"":"none";
   $("fcMain").style.display=t==="cards"?"block":"none";
   if(t==="cards")fcRender();
+  if(typeof driveInlineMaybeRenderForTab==="function")driveInlineMaybeRenderForTab();
 }
 $("tabReader").addEventListener("click",()=>setTab("reader"));
 $("tabCards").addEventListener("click",()=>setTab("cards"));
@@ -6017,7 +6046,15 @@ $("deckMgrList").addEventListener("click",e=>{
    파일과 연결돼 있는지"를 세션 메모리에만 들고 있고(새로고침하면 사라짐 — 그때는
    목록에서 다시 열면 됨), 파일을 열거나 새로 저장할 때마다 saveRecent/saveFcRecent의
    meta에도 같이 남겨서 "최근 항목" 정보 화면에서도 드라이브 연결 여부를 알 수 있다. */
-let driveKind="map",driveFiles=[],driveFolder=null,driveLinkedMap=null,driveLinkedCards=null,drivePendingSync=null;
+let driveKind="map",driveFolder=null,driveLinkedMap=null,driveLinkedCards=null,drivePendingSync=null;
+/* driveNavPath: 지금 드라이브 모달에서 들여다보고 있는 폴더 경로(탐색기의 "지금 위치") —
+   [0]이 항상 연결된 루트 폴더("MindFlash" 등)이고, 뒤로 갈수록 그 안의 하위 폴더다.
+   폴더를 새로 만들거나 그 안으로 들어갈 때 여기에 쌓이고, 상단 빵부스러기를 누르면
+   그 위치까지 잘려나간다. 세션 메모리에만 두고(새로고침하면 루트로 돌아감) 루트
+   폴더 자체만 localStorage에 남긴다 — 탐색 위치까지 영구 저장하면 다른 기기에서
+   열었을 때 낯선 하위 폴더에 가 있어 오히려 헷갈릴 수 있어서다. */
+let driveNavPath=[],driveFoldersListed=[];
+function driveCurrentFolderId(){return driveNavPath.length?driveNavPath[driveNavPath.length-1].id:(driveFolder&&driveFolder.id);}
 function driveLoadFolder(){try{return JSON.parse(localStorage.getItem("mfDrive.folder")||"null");}catch(e){return null;}}
 function driveSaveFolder(f){driveFolder=f;try{localStorage.setItem("mfDrive.folder",JSON.stringify(f));}catch(e){}}
 function driveLinkedFor(kind){return kind==="map"?driveLinkedMap:driveLinkedCards;}
@@ -6073,14 +6110,16 @@ function driveShowSignedIn(){
     return;
   }
   $("driveFolderName").textContent=driveFolder.name;
-  driveRenderFileList();
+  driveNavPath=[{id:driveFolder.id,name:driveFolder.name}];
+  driveRenderExplorer();
 }
 async function driveConnectDefaultFolder(){
   try{
     const f=await driveEnsureFolder("MindFlash");
     driveSaveFolder({id:f.id,name:f.name});
     $("driveFolderName").textContent=f.name;
-    driveRenderFileList();
+    driveNavPath=[{id:f.id,name:f.name}];
+    driveRenderExplorer();
   }catch(e){$("driveFolderName").textContent="폴더 연결 실패";toast("드라이브 폴더를 열지 못했습니다 — "+e.message);}
 }
 function driveUpdateSyncRow(){
@@ -6094,26 +6133,45 @@ function driveUpdateSyncRow(){
     $("driveSaveNew").textContent="＋ 지금 보는 내용을 드라이브에 새로 저장";
   }
 }
-async function driveRenderFileList(){
-  if(!driveFolder)return;
-  $("driveFileList").innerHTML='<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">불러오는 중…</div>';
-  try{driveFiles=await driveListFiles(driveFolder.id);}
-  catch(e){$("driveFileList").innerHTML='<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">파일 목록을 불러오지 못했습니다 — '+escA(e.message)+'</div>';return;}
-  if(!driveFiles.length){$("driveFileList").innerHTML='<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">이 폴더에 저장된 파일이 없습니다</div>';return;}
-  let html="";
-  driveFiles.forEach((f,i)=>{
-    const dt=f.modifiedTime?new Date(f.modifiedTime):null;
-    const dstr=dt?(dt.getMonth()+1)+"/"+dt.getDate()+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0"):"";
-    html+='<div class="mrow">'
-      +'<span class="mname" title="'+escA(f.name)+'">'+escA(f.name)+'</span>'
-      +'<span style="font-size:11px;color:var(--muted);white-space:nowrap">'+dstr+'</span>'
-      +'<button class="mact driveOpenFile" data-i="'+i+'">열기</button>'
-      +'</div>';
-  });
+/* 탐색기 렌더링 — 지금 위치(driveNavPath)의 빵부스러기 + "새 폴더" 버튼 + 그 폴더
+   안의 하위 폴더(먼저)·파일(나중) 목록. 폴더를 누르면 그 안으로 들어가고, 빵부스러기를
+   누르면 그 위치로 되돌아간다 — 탐색기 앱과 같은 동작. */
+async function driveRenderExplorer(){
+  const curId=driveCurrentFolderId();
+  if(!curId)return;
+  const bc=driveNavPath.map((p,i)=>
+    '<span class="driveCrumb'+(i===driveNavPath.length-1?" cur":"")+'" data-i="'+i+'" style="cursor:'+(i===driveNavPath.length-1?"default":"pointer")+';'+(i===driveNavPath.length-1?"font-weight:700;color:var(--c0t)":"color:var(--muted);text-decoration:underline")+'">'+escA(p.name)+'</span>'
+  ).join('<span style="color:var(--muted);padding:0 3px">/</span>');
+  let head='<div id="driveBreadcrumb" style="font-size:12.5px;margin-bottom:8px;line-height:1.6;word-break:break-all">'+bc+'</div>'
+    +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="mact driveNewFolderBtn">📁＋ 새 폴더</button></div>';
+  $("driveFileList").innerHTML=head+'<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">불러오는 중…</div>';
+  let items;
+  try{items=await driveListFiles(curId);}
+  catch(e){$("driveFileList").innerHTML=head+'<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">목록을 불러오지 못했습니다 — '+escA(e.message)+'</div>';return;}
+  const folders=items.filter(f=>f.mimeType==="application/vnd.google-apps.folder");
+  const files=items.filter(f=>f.mimeType!=="application/vnd.google-apps.folder");
+  driveFoldersListed=folders;
+  let html=head;
+  if(!folders.length&&!files.length){
+    html+='<div style="padding:10px;text-align:center;color:var(--muted);font-size:12px">이 폴더가 비어 있습니다</div>';
+  }else{
+    folders.forEach(f=>{
+      html+='<div class="mrow"><span class="mname driveFolderRow" data-id="'+escA(f.id)+'" data-name="'+escA(f.name)+'" style="cursor:pointer">📁 '+escA(f.name)+'</span></div>';
+    });
+    files.forEach(f=>{
+      const dt=f.modifiedTime?new Date(f.modifiedTime):null;
+      const dstr=dt?(dt.getMonth()+1)+"/"+dt.getDate()+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0"):"";
+      html+='<div class="mrow">'
+        +'<span class="mname" title="'+escA(f.name)+'">'+escA(f.name)+'</span>'
+        +'<span style="font-size:11px;color:var(--muted);white-space:nowrap">'+dstr+'</span>'
+        +'<button class="mact driveOpenFile" data-id="'+escA(f.id)+'" data-name="'+escA(f.name)+'" data-mtime="'+escA(f.modifiedTime||"")+'">열기</button>'
+        +'</div>';
+    });
+  }
   $("driveFileList").innerHTML=html;
 }
 async function driveApplyDownloaded(text,f,folderId){
-  const fid=folderId||(driveFolder&&driveFolder.id);
+  const fid=folderId||driveCurrentFolderId();
   const ext=extOf(f.name,driveKind==="cards"?"json":"mm");
   const meta={method:"drive",driveFileId:f.id,driveModifiedTime:f.modifiedTime,driveFolderId:fid};
   const nm=baseNoExt(f.name);
@@ -6125,16 +6183,47 @@ async function driveApplyDownloaded(text,f,folderId){
   toast(nm+" 을(를) 열었습니다 — 앞으로 '지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
 }
 $("driveFileList").addEventListener("click",async e=>{
-  const b=e.target.closest(".driveOpenFile");if(!b)return;
-  const f=driveFiles[+b.dataset.i];if(!f)return;
-  b.disabled=true;b.textContent="여는 중…";
-  try{const text=await driveDownload(f.id);await driveApplyDownloaded(text,f);}
-  catch(e2){toast("파일을 열지 못했습니다 — "+e2.message);b.disabled=false;b.textContent="열기";}
+  const crumb=e.target.closest(".driveCrumb");
+  if(crumb){
+    const i=+crumb.dataset.i;
+    if(i<driveNavPath.length-1){driveNavPath=driveNavPath.slice(0,i+1);driveRenderExplorer();}
+    return;
+  }
+  const folderRow=e.target.closest(".driveFolderRow");
+  if(folderRow){
+    driveNavPath.push({id:folderRow.dataset.id,name:folderRow.dataset.name});
+    driveRenderExplorer();
+    return;
+  }
+  const newFolderBtn=e.target.closest(".driveNewFolderBtn");
+  if(newFolderBtn){
+    const v=prompt("새 폴더 이름");
+    if(!v||!v.trim())return;
+    const name=v.trim();
+    if(driveFoldersListed.some(f=>f.name===name)&&!confirm("이미 같은 이름의 폴더가 있어요. 그래도 새로 만들까요?"))return;
+    newFolderBtn.disabled=true;newFolderBtn.textContent="만드는 중…";
+    try{
+      await driveCreateFolder(name,driveCurrentFolderId());
+      driveRenderExplorer();
+      toast("'"+name+"' 폴더를 만들었습니다");
+    }catch(e2){toast("폴더를 만들지 못했습니다 — "+e2.message);}
+    return;
+  }
+  const b=e.target.closest(".driveOpenFile");
+  if(b){
+    const f={id:b.dataset.id,name:b.dataset.name,modifiedTime:b.dataset.mtime||""};
+    if(!f.id)return;
+    b.disabled=true;b.textContent="여는 중…";
+    try{const text=await driveDownload(f.id);await driveApplyDownloaded(text,f,driveCurrentFolderId());}
+    catch(e2){toast("파일을 열지 못했습니다 — "+e2.message);b.disabled=false;b.textContent="열기";}
+    return;
+  }
 });
 async function driveSaveNew(){
-  if(!driveFolder){toast("먼저 폴더를 연결해주세요");return;}
+  const curId=driveCurrentFolderId();
+  if(!curId){toast("먼저 폴더를 연결해주세요");return;}
   const defName=driveCurrentName(driveKind)||(driveKind==="map"?"제목 없음":"새 덱");
-  const v=prompt("드라이브에 저장할 이름",defName);
+  const v=prompt("드라이브에 저장할 이름 (지금 열려 있는 폴더: "+(driveNavPath.length?driveNavPath[driveNavPath.length-1].name:"")+")",defName);
   if(!v||!v.trim())return;
   const name=v.trim();
   const ext=driveCurrentExt(driveKind);
@@ -6142,12 +6231,12 @@ async function driveSaveNew(){
   $("driveSaveNew").disabled=true;
   try{
     const content=driveCurrentContent(driveKind);
-    const res=await driveCreateFile(driveFolder.id,fname,driveCurrentMime(driveKind),content);
-    driveSetLinked(driveKind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:driveFolder.id,name:name,lastSyncTs:Date.now()});
-    const meta={method:"drive",driveFileId:res.id,driveModifiedTime:res.modifiedTime,driveFolderId:driveFolder.id};
+    const res=await driveCreateFile(curId,fname,driveCurrentMime(driveKind),content);
+    driveSetLinked(driveKind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:curId,name:name,lastSyncTs:Date.now()});
+    const meta={method:"drive",driveFileId:res.id,driveModifiedTime:res.modifiedTime,driveFolderId:curId};
     if(driveKind==="map"){titles.reader=name;lastOpenName=name;$("fileName").textContent=name;saveRecent(name,content,ext,meta);}
     else{deck.name=name;titles.cards=name;if(tab==="cards")$("fileName").textContent=name;saveFcRecent(name,content,"json",meta);}
-    driveUpdateSyncRow();driveRenderFileList();
+    driveUpdateSyncRow();driveRenderExplorer();
     toast("드라이브에 새로 저장했습니다 — "+fname);
   }catch(e){toast("드라이브에 저장하지 못했습니다 — "+e.message);}
   $("driveSaveNew").disabled=false;
@@ -6178,7 +6267,7 @@ $("driveSignInBtn").addEventListener("click",async()=>{
   catch(e){toast("로그인하지 못했습니다 — "+e.message);}
 });
 $("driveSignOutBtn").addEventListener("click",()=>{
-  driveAuth.disconnect();driveFolder=null;driveLinkedMap=null;driveLinkedCards=null;
+  driveAuth.disconnect();driveFolder=null;driveLinkedMap=null;driveLinkedCards=null;driveNavPath=[];
   try{localStorage.removeItem("mfDrive.folder");}catch(e){}
   driveShowSignedOut();
   toast("드라이브 연결을 해제했습니다");
@@ -6195,9 +6284,10 @@ $("driveFolderLinkGo").addEventListener("click",async()=>{
     const f=await driveResolveFolderFromLink(v);
     driveSaveFolder({id:f.id,name:f.name});
     $("driveFolderName").textContent=f.name;
+    driveNavPath=[{id:f.id,name:f.name}];
     $("driveFolderLinkRow").style.display="none";
     $("driveFolderLinkInput").value="";
-    driveRenderFileList();
+    driveRenderExplorer();
     toast("'"+f.name+"' 폴더에 연결했습니다");
   }catch(e){toast("폴더에 연결하지 못했습니다 — "+e.message);}
   $("driveFolderLinkGo").disabled=false;
@@ -6309,8 +6399,6 @@ function renderFcRecents(){
 $("fcFileInput").addEventListener("change",e=>{
   const f=e.target.files[0];if(!f)return;fcReadFile(f,"input");e.target.value="";
 });
-$("fcBtnOpen").addEventListener("click",fcOpenWithPicker); $("fcBtnOpenDrive").addEventListener("click",()=>openDriveModal("cards"));
-$("fcBtnNew").addEventListener("click",fcNew);
 $("fcVList").addEventListener("click",()=>{fcView="list";fcRender();});
 $("fcVStudy").addEventListener("click",()=>{fcView="study";fcRender();});
 $("fcPrev").addEventListener("click",()=>fcMove(-1));
@@ -6670,6 +6758,234 @@ restoreFontFile();
 restoreSession();
 renderRecents();
 renderFcRecents();
+
+/* ══════════════ 첫 화면 인라인 구글 드라이브 탐색기(트리) ══════════════
+   로그인돼 있으면(예전에 한 번 로그인한 적 있고 구글 세션이 살아있으면) 첫 화면이
+   설명·버튼 대신 곧바로 그 탭 전용 폴더("MindFlash" 안의 "마인드맵"/"플래시카드"
+   하위 폴더)를 보여준다. 윈도우 탐색기 왼쪽 트리처럼, 폴더를 누르면 그 자리에서
+   화살표가 돌며 하위 폴더·파일이 들여쓰기로 펼쳐진다(다른 화면으로 이동하지
+   않음) — 다시 누르면 접힌다. "⋮" 메뉴의 "☁ 구글 드라이브"(모달)는 그대로 남겨서
+   폴더를 바꾸거나 로그아웃하거나 이미 연 문서를 "지금 동기화"하는 등 자주 쓰지
+   않는 조작에 쓴다 — 이 트리 상태(driveTree)는 모달의 driveNavPath와 완전히
+   별개로 관리한다.
+   driveTree[kind] = {id,name,type:"folder",loaded,children:[...]} — 루트 자체는
+   행으로 그리지 않고(제목줄로만 표시) children부터 트리로 그린다. 폴더 노드는
+   {id,name,type:"folder",expanded,loaded,children}, 파일 노드는
+   {id,name,type:"file",modifiedTime,parent}. */
+const DRIVE_KIND_FOLDER_NAME={map:"마인드맵",cards:"플래시카드"};
+let driveInlineConnected=false;
+let driveTree={map:null,cards:null},driveInlineRendered={map:false,cards:false};
+function driveInlineRootKey(kind){return "mfDrive.subfolder."+kind;}
+function driveInlineLoadRoot(kind){try{return JSON.parse(localStorage.getItem(driveInlineRootKey(kind))||"null");}catch(e){return null;}}
+function driveInlineSaveRoot(kind,f){try{localStorage.setItem(driveInlineRootKey(kind),JSON.stringify(f));}catch(e){}}
+async function driveInlineEnsureRoot(kind){
+  const cached=driveInlineLoadRoot(kind);
+  if(cached&&cached.id)return cached;
+  const root=await driveEnsureFolder("MindFlash");
+  driveSaveFolder({id:root.id,name:root.name});
+  const sub=await driveEnsureFolder(DRIVE_KIND_FOLDER_NAME[kind],root.id);
+  const out={id:sub.id,name:sub.name};
+  driveInlineSaveRoot(kind,out);
+  return out;
+}
+function driveTreeFindNode(kind,id){
+  const root=driveTree[kind];
+  if(!root)return null;
+  function walk(n){
+    if(n.id===id)return n;
+    if(n.children)for(const c of n.children){const r=walk(c);if(r)return r;}
+    return null;
+  }
+  return walk(root);
+}
+/* 새로고침해도 이미 펼쳐 둔 하위 폴더의 펼침 상태가 사라지지 않도록, 새로 받아온
+   폴더 목록에 같은 id가 있으면 그 노드의 expanded/loaded/children을 이어받는다. */
+async function driveTreeLoadChildren(kind,node){
+  const items=await driveListFiles(node.id);
+  const oldById={};
+  (node.children||[]).forEach(c=>{oldById[c.id]=c;});
+  const folders=items.filter(f=>f.mimeType==="application/vnd.google-apps.folder").map(f=>{
+    const old=oldById[f.id];
+    return {id:f.id,name:f.name,type:"folder",modifiedTime:f.modifiedTime,parent:node.id,
+      expanded:old?old.expanded:false,loaded:old?old.loaded:false,children:old?old.children:[]};
+  });
+  const files=items.filter(f=>f.mimeType!=="application/vnd.google-apps.folder").map(f=>
+    ({id:f.id,name:f.name,type:"file",modifiedTime:f.modifiedTime,mimeType:f.mimeType,parent:node.id}));
+  node.children=[...folders,...files];
+  node.loaded=true;
+}
+function driveTreeRenderNode(kind,node,depth){
+  if(node.type==="folder"){
+    let html='<div class="dtRow dtFolderRow" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
+      +'<span class="dtChevron'+(node.expanded?" open":"")+'">▸</span>'
+      +'<span class="dtIcon">📁</span>'
+      +'<span class="dtName">'+escA(node.name)+'</span>'
+      +'<button type="button" class="dtNewBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더 안에 새 폴더">＋</button>'
+      +'</div>';
+    if(node.expanded){
+      if(!node.loaded){
+        html+='<div class="dtLoading" style="padding-left:'+((depth+1)*18)+'px">불러오는 중…</div>';
+      }else if(!node.children.length){
+        html+='<div class="dtEmptyNode" style="padding-left:'+((depth+1)*18)+'px">비어 있음</div>';
+      }else{
+        node.children.forEach(c=>{html+=driveTreeRenderNode(kind,c,depth+1);});
+      }
+    }
+    return html;
+  }
+  const dt=node.modifiedTime?new Date(node.modifiedTime):null;
+  const dstr=dt?(dt.getMonth()+1)+"/"+dt.getDate():"";
+  const ico=/\.(mm|xml|opml|md|markdown|txt|csv)$/i.test(node.name)?"🧠":"🗂";
+  return '<div class="dtRow dtFileRow" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
+    +'<span class="dtChevron" style="visibility:hidden">▸</span>'
+    +'<span class="dtIcon">'+ico+'</span>'
+    +'<span class="dtName" title="'+escA(node.name)+'">'+escA(node.name)+'</span>'
+    +'<span class="dtMeta">'+dstr+'</span>'
+    +'</div>';
+}
+function driveTreeRender(kind){
+  const wrap=$(kind==="map"?"driveInlineMap":"driveInlineCards");
+  if(!wrap)return;
+  const treeEl=wrap.querySelector(".driveTree");
+  const root=driveTree[kind];
+  if(!root){treeEl.innerHTML="";return;}
+  if(!root.loaded){treeEl.innerHTML='<div style="padding:10px 4px;color:var(--muted);font-size:12px">불러오는 중…</div>';return;}
+  if(!root.children.length){treeEl.innerHTML='<div style="padding:10px 4px;color:var(--muted);font-size:12px">이 폴더가 비어 있습니다 — "＋새 폴더"로 정리하거나, ⋮ 메뉴의 "구글 드라이브"에서 지금 보는 내용을 저장해보세요</div>';return;}
+  treeEl.innerHTML=root.children.map(c=>driveTreeRenderNode(kind,c,0)).join("");
+}
+async function driveTreeToggle(kind,id){
+  const node=driveTreeFindNode(kind,id);
+  if(!node||node.type!=="folder")return;
+  node.expanded=!node.expanded;
+  driveTreeRender(kind);
+  if(node.expanded&&!node.loaded){
+    try{await driveTreeLoadChildren(kind,node);}
+    catch(e){toast("폴더를 불러오지 못했습니다 — "+e.message);node.expanded=false;}
+    driveTreeRender(kind);
+  }
+}
+async function driveTreeNewFolder(kind,parentId){
+  const v=prompt("새 폴더 이름");
+  if(!v||!v.trim())return;
+  const name=v.trim();
+  const parentNode=driveTreeFindNode(kind,parentId);
+  if(parentNode&&parentNode.loaded&&(parentNode.children||[]).some(c=>c.type==="folder"&&c.name===name)&&!confirm("이미 같은 이름의 폴더가 있어요. 그래도 새로 만들까요?"))return;
+  try{
+    await driveCreateFolder(name,parentId);
+    if(parentNode){
+      parentNode.expanded=true;
+      await driveTreeLoadChildren(kind,parentNode);
+      driveTreeRender(kind);
+    }
+    toast("'"+name+"' 폴더를 만들었습니다");
+  }catch(e){toast("폴더를 만들지 못했습니다 — "+e.message);}
+}
+async function driveTreeRefreshAll(kind){
+  const root=driveTree[kind];
+  if(!root)return;
+  await driveTreeLoadChildren(kind,root);
+  async function walk(node){
+    if(node.type!=="folder")return;
+    if(node.expanded){try{await driveTreeLoadChildren(kind,node);}catch(e){}}
+    if(node.children)for(const c of node.children)await walk(c);
+  }
+  for(const c of root.children)await walk(c);
+  driveTreeRender(kind);
+}
+async function driveTreeOpenFile(kind,node){
+  const ext=kind==="cards"?"json":"mm";
+  const text=await driveDownload(node.id);
+  const meta={method:"drive",driveFileId:node.id,driveModifiedTime:node.modifiedTime,driveFolderId:node.parent};
+  const nm=baseNoExt(node.name);
+  if(kind==="map")openContent(text,nm,ext,meta);
+  else fcOpenFile(text,nm,ext,meta);
+  driveSetLinked(kind,{fileId:node.id,modifiedTime:node.modifiedTime,folderId:node.parent,name:nm,lastSyncTs:Date.now()});
+  toast(nm+" 을(를) 열었습니다 — 앞으로 ⋮ 메뉴의 '구글 드라이브 › 지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
+}
+function bindDriveInline(kind){
+  const wrap=$(kind==="map"?"driveInlineMap":"driveInlineCards");
+  if(!wrap)return;
+  wrap.addEventListener("click",async e=>{
+    const newBtn=e.target.closest(".dtNewBtn");
+    if(newBtn){e.stopPropagation();await driveTreeNewFolder(kind,newBtn.dataset.id);return;}
+    const folderRow=e.target.closest(".dtFolderRow");
+    if(folderRow){await driveTreeToggle(kind,folderRow.dataset.id);return;}
+    const fileRow=e.target.closest(".dtFileRow");
+    if(fileRow){
+      const node=driveTreeFindNode(kind,fileRow.dataset.id);
+      if(!node)return;
+      fileRow.style.opacity=".5";
+      try{await driveTreeOpenFile(kind,node);}
+      catch(e2){toast("파일을 열지 못했습니다 — "+e2.message);fileRow.style.opacity="";}
+      return;
+    }
+    const topNewBtn=e.target.closest(".driveInlineNewFolder");
+    if(topNewBtn){
+      const root=driveTree[kind];
+      if(root)await driveTreeNewFolder(kind,root.id);
+      return;
+    }
+    const syncBtn=e.target.closest(".driveInlineSync");
+    if(syncBtn){
+      syncBtn.disabled=true;
+      try{await driveTreeRefreshAll(kind);toast("목록을 새로고침했습니다");}
+      catch(e2){toast("새로고침하지 못했습니다 — "+e2.message);}
+      syncBtn.disabled=false;
+      return;
+    }
+  });
+}
+async function driveInlineShowFor(kind){
+  const gate=$(kind==="map"?"driveGateMap":"driveGateCards");
+  const inline=$(kind==="map"?"driveInlineMap":"driveInlineCards");
+  if(gate)gate.hidden=true;
+  if(inline)inline.hidden=false;
+  if(!driveTree[kind]){
+    const root=await driveInlineEnsureRoot(kind);
+    driveTree[kind]={id:root.id,name:root.name,type:"folder",loaded:false,children:[]};
+  }
+  if(!driveTree[kind].loaded)await driveTreeLoadChildren(kind,driveTree[kind]);
+  driveTreeRender(kind);
+  driveInlineRendered[kind]=true;
+}
+function driveInlineMaybeRenderForTab(){
+  if(!driveInlineConnected)return;
+  const kind=tab==="cards"?"cards":"map";
+  if(!driveInlineRendered[kind])driveInlineShowFor(kind).catch(e=>{toast("드라이브 폴더를 열지 못했습니다 — "+e.message);});
+}
+async function driveGateLogin(kind){
+  const btn=$(kind==="map"?"driveGateLoginMap":"driveGateLoginCards");
+  if(btn){btn.disabled=true;btn.textContent="로그인 중…";}
+  try{
+    await driveAuth.signIn(false);
+    driveInlineConnected=true;
+    await driveInlineShowFor(kind);
+    const other=kind==="map"?"cards":"map";
+    if(!driveInlineRendered[other])driveInlineShowFor(other).catch(()=>{});
+  }catch(e){
+    toast("로그인에 실패했습니다 — "+e.message);
+  }
+  if(btn){btn.disabled=false;btn.textContent="구글 계정으로 로그인";}
+}
+async function driveInlineBoot(){
+  if(!driveAuth.available()){
+    const wm=$("driveGateWarnMap"),wc=$("driveGateWarnCards");
+    if(wm)wm.hidden=false;
+    if(wc)wc.hidden=false;
+    return;
+  }
+  if(!driveAuth.everConnected())return;
+  try{
+    await driveAuth.signIn(true);
+    driveInlineConnected=true;
+    await driveInlineShowFor(tab==="cards"?"cards":"map");
+  }catch(e){/* 조용히 실패 — 로그인 버튼이 그대로 남아있으니 다시 누르면 됨 */}
+}
+bindDriveInline("map");
+bindDriveInline("cards");
+$("driveGateLoginMap").addEventListener("click",()=>driveGateLogin("map"));
+$("driveGateLoginCards").addEventListener("click",()=>driveGateLogin("cards"));
+driveInlineBoot();
 </script>
 </body>
 </html>
