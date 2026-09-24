@@ -817,6 +817,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       <div class="driveInlineBar">
         <div class="driveInlineTitle">📁 마인드맵</div>
         <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineSort" title="정렬 방식 전환"></button>
           <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
           <button type="button" class="mact driveInlineImport">📥 가져오기</button>
           <button type="button" class="mact driveInlineNewFile">📝 새 파일</button>
@@ -847,6 +848,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       <div class="driveInlineBar">
         <div class="driveInlineTitle">📁 플래시카드</div>
         <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineSort" title="정렬 방식 전환"></button>
           <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
           <button type="button" class="mact driveInlineImport">📥 가져오기</button>
           <button type="button" class="mact driveInlineNewFile">📝 새 파일</button>
@@ -3864,7 +3866,10 @@ addEventListener("popstate",e=>{
 });
 function nodeCopy(id){
   let list=null;
-  if(selSet.size>1&&selSet.has(id))list=selDocOrder();
+  if(selSet.size>1&&selSet.has(id)){
+    list=selDocOrder();
+    list=list.filter(n=>{let p=findParent(model,n.id);while(p){if(list.some(x=>x.id===p.id))return false;p=findParent(model,p.id);}return true;});
+  }
   else{const n0=byId(id);if(!n0)return;list=[n0];}
   selNodeId=id;
   mmClipList=list.map(n=>JSON.parse(JSON.stringify(n)));
@@ -6069,6 +6074,26 @@ $("deckMgrList").addEventListener("click",e=>{
    목록에서 다시 열면 됨), 파일을 열거나 새로 저장할 때마다 saveRecent/saveFcRecent의
    meta에도 같이 남겨서 "최근 항목" 정보 화면에서도 드라이브 연결 여부를 알 수 있다. */
 let driveKind="map",driveFolder=null,driveLinkedMap=null,driveLinkedCards=null,drivePendingSync=null;
+/* driveLinkedMap/Cards를 새로고침 후에도 잃지 않도록 localStorage에도 함께 남긴다.
+   예전엔 세션 메모리에만 있어서, 새로고침하면 "지금 동기화"가 연결을 못 찾고
+   조용히 "새로 저장"(driveSaveNew) 경로로 빠져 같은 파일에 또 다른 사본이 생기거나
+   충돌 검사 없이 동작하는 문제가 있었다. lastSyncedContent(문서 전체 내용)까지
+   같이 저장하므로 용량이 크면(약 1.8MB 초과) 저장을 건너뛴다 — 그런 경우 다음 접속
+   때는 링크가 비어 있는 것처럼 보이지만, 앱을 다시 열거나 "지금 동기화"를 누르면
+   여전히 정상적으로 이어서 동작한다(그냥 이 최적화만 못 받는 것). */
+function driveLinkedStorageKey(kind){return "mfDrive.linked."+kind;}
+function driveSaveLinkedToStorage(kind,v){
+  try{
+    const key=driveLinkedStorageKey(kind);
+    if(!v){localStorage.removeItem(key);return;}
+    const s=JSON.stringify(v);
+    if(s.length>1800000)return;
+    localStorage.setItem(key,s);
+  }catch(e){}
+}
+function driveLoadLinkedFromStorage(kind){try{return JSON.parse(localStorage.getItem(driveLinkedStorageKey(kind))||"null");}catch(e){return null;}}
+driveLinkedMap=driveLoadLinkedFromStorage("map");
+driveLinkedCards=driveLoadLinkedFromStorage("cards");
 /* driveNavPath: 지금 드라이브 모달에서 들여다보고 있는 폴더 경로(탐색기의 "지금 위치") —
    [0]이 항상 연결된 루트 폴더("MindFlash" 등)이고, 뒤로 갈수록 그 안의 하위 폴더다.
    폴더를 새로 만들거나 그 안으로 들어갈 때 여기에 쌓이고, 상단 빵부스러기를 누르면
@@ -6080,7 +6105,18 @@ function driveCurrentFolderId(){return driveNavPath.length?driveNavPath[driveNav
 function driveLoadFolder(){try{return JSON.parse(localStorage.getItem("mfDrive.folder")||"null");}catch(e){return null;}}
 function driveSaveFolder(f){driveFolder=f;try{localStorage.setItem("mfDrive.folder",JSON.stringify(f));}catch(e){}}
 function driveLinkedFor(kind){return kind==="map"?driveLinkedMap:driveLinkedCards;}
-function driveSetLinked(kind,v){if(kind==="map")driveLinkedMap=v;else driveLinkedCards=v;}
+function driveSetLinked(kind,v){if(kind==="map")driveLinkedMap=v;else driveLinkedCards=v;driveSaveLinkedToStorage(kind,v);}
+/* 링크가 가리키는 파일 이름이 지금 화면에 열려 있는 문서와 다르면(예: 새로고침
+   사이에 전혀 다른 파일을 로컬에서 새로 열었거나, 저장된 링크가 오래된 경우)
+   그 링크는 더 이상 유효하지 않은 것으로 보고 끊는다 — openDriveModal이 이미 쓰던
+   검사를 동기화 경로(수동/자동)에서도 똑같이 적용해, 엉뚱한 드라이브 파일에
+   덮어쓰지 않도록 한다. */
+function driveLinkValidForCurrent(kind){
+  const link=driveLinkedFor(kind);
+  if(!link)return null;
+  if(link.name&&link.name!==driveCurrentName(kind)){driveSetLinked(kind,null);return null;}
+  return link;
+}
 function driveCurrentName(kind){return kind==="map"?(titles.reader||lastOpenName||"제목 없음"):(deck?deck.name:"");}
 /* 드라이브에 올라가는 내용은 항상 무손실 형식으로 — 맵은 기존 toMM(), 덱은
    fcToJSON()(카드 스타일·SM-2 진도까지 전부 담김). CSV/TSV 등 다른 내보내기
@@ -6204,6 +6240,56 @@ async function driveApplyDownloaded(text,f,folderId){
   driveUpdateSyncRow();
   toast(nm+" 을(를) 열었습니다 — 앞으로 '지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
 }
+/* 다른 기기가 그 사이 드라이브에 올린 최신 내용을, 지금 화면이 그대로(수정한 부분
+   없이) 보고 있을 때 "조용히" 반영한다 — openContent()/fcOpenFile()과 달리 홈 화면
+   전환·히스토리 이동·모든 노드 접기·카드 뷰 초기화 같은 화면 전환을 하지 않는다.
+   지금 보이는 탭이 아니면 화면을 다시 그리지도 않아(내용은 갱신하되 $("fileName")도
+   건드리지 않아) 다른 화면을 보고 있는 사용자를 방해하지 않는다. */
+function driveApplyRemoteQuiet(kind,text,f,folderId){
+  const nm=baseNoExt(f.name||driveCurrentName(kind));
+  if(kind==="map"){
+    const trimmed=text.replace(/^﻿/,"").trim();
+    let newModel;
+    try{
+      if(trimmed.startsWith("<")){
+        const doc=new DOMParser().parseFromString(text,"application/xml");
+        if(doc.querySelector("parsererror"))throw new Error("XML 해석 실패");
+        const tag=doc.documentElement.tagName.toLowerCase();
+        if(tag==="map")newModel=parseMM(doc);
+        else if(tag==="opml")newModel=parseOPML(doc);
+        else throw new Error("지원하지 않는 형식입니다");
+      }else newModel=parseOutlineText(trimmed);
+    }catch(e){return;} /* 해석 실패면 조용히 포기하고 다음 주기에 다시 시도 */
+    model=newModel;
+    seq=1;walkAll(n=>{n.id="n"+(seq++);});
+    mapUid="mu"+Date.now()+"_"+Math.floor(Math.random()*1000000);
+    try{undoStack=[{u:mapUid,x:text}];redoStack=[];}catch(e){undoStack=[];redoStack=[];}
+    selSet.clear();selAnchorId=null;selNodeId=null;dtLastId=null;dtLastT=0;
+    titles.reader=nm||titles.reader;lastOpenName=nm||lastOpenName;
+    if(tab==="reader"){$("fileName").textContent=titles.reader;render();}
+  }else{
+    let cards;
+    try{cards=fcParseAny(text,"json");if(!cards||!cards.length)return;}catch(e){return;}
+    deck={name:nm||(deck?deck.name:"새 덱"),cards:cards.map(c=>fcCard({q:c.q,a:c.a,done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,st:c.st,shape:c.shape,ef:c.ef,ivl:c.ivl,reps:c.reps,lapses:c.lapses,due:c.due,last:c.last,hlr:c.hlr,sr:c.sr}))};
+    buildOrder();buildListOrder();
+    if(fcIdx>=deck.cards.length)fcIdx=Math.max(0,deck.cards.length-1);
+    fcExp=deck.cards.map(()=>false);
+    fcUndoStack=[JSON.stringify(deck)];fcRedoStack=[];
+    titles.cards=deck.name;
+    if(tab==="cards"){$("fileName").textContent=deck.name;fcRender();}
+  }
+  const link=driveLinkedFor(kind);
+  if(link){
+    link.modifiedTime=f.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=text;link.autoSyncBlocked=false;
+    if(nm)link.name=nm;
+    if(folderId)link.folderId=folderId;
+    driveSetLinked(kind,link);
+  }
+  const meta={method:"drive",driveFileId:f.id,driveModifiedTime:f.modifiedTime,driveFolderId:(link&&link.folderId)||folderId};
+  if(kind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",text,driveCurrentExt("map"),meta);
+  else saveFcRecent(deck.name,text,"json",meta);
+  toast((kind==="map"?"마인드맵":"플래시카드")+" — 다른 기기에서 바뀐 내용을 불러왔습니다");
+}
 $("driveFileList").addEventListener("click",async e=>{
   const crumb=e.target.closest(".driveCrumb");
   if(crumb){
@@ -6264,32 +6350,92 @@ async function driveSaveNew(){
   $("driveSaveNew").disabled=false;
 }
 $("driveSaveNew").addEventListener("click",driveSaveNew);
-async function driveSyncNow(force){
-  const link=driveLinkedFor(driveKind);
-  if(!link||!link.fileId){driveSaveNew();return;}
-  const content=driveCurrentContent(driveKind);
-  $("driveSyncNow").disabled=true;$("driveSyncStatus").textContent="동기화 중…";
-  try{
-    const res=await driveUpdateFile(link.fileId,content,force?null:link.modifiedTime,driveCurrentMime(driveKind));
-    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
-    const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
-    if(driveKind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
-    else saveFcRecent(deck.name,content,"json",meta);
-    toast("드라이브에 동기화했습니다");
-  }catch(e){
-    if(e.conflict){drivePendingSync={link:link,content:content,remoteMeta:e.remoteMeta};$("driveConflictModal").classList.remove("hidden");}
-    else toast("동기화하지 못했습니다 — "+e.message);
+/* ══ 양방향 동기화 핵심 ══
+   "동기화"가 뭘 뜻하는지(내 작업을 올리기 vs 드라이브 내용을 받기)를 기기별로
+   미리 정해두지 않는다. 그 대신 매번 "이 기기에서 마지막 동기화 이후 내용을
+   바꿨는지"(localChanged)와 "드라이브의 modifiedTime이 마지막으로 본 값과
+   다른지"(remoteChanged)를 함께 확인해서, 네 가지 경우로 나눈다.
+     - 둘 다 아니오: 할 일 없음
+     - 나만 바뀜: 올린다(push)
+     - 드라이브만 바뀜: 받는다(pull) — 지금 내용은 마지막 동기화 시점 그대로이므로
+       잃을 게 없어 안전하게 자동으로 받아온다
+     - 둘 다 바뀜: 진짜 충돌 — 수동 동기화("지금 동기화")면 기존 3지선다
+       대화상자를 띄우고, 자동 주기 동기화면 화면을 방해하지 않고 조용히 멈춘 뒤
+       한 번만 안내한다(막힌 상태는 다음 "지금 동기화"로 직접 풀 수 있음).
+   interactive=true(수동 "지금 동기화" 버튼)면 매 단계 결과를 토스트로 알리고
+   충돌 시 대화상자를 띄운다. interactive가 아니면(자동 주기 tick) 조용히
+   처리하고, 충돌만 한 번 안내한다. */
+async function driveSyncKind(kind,interactive){
+  /* 이름 불일치 검사(driveLinkValidForCurrent)는 사용자가 직접 동작을 시작한
+     경우(수동 "지금 동기화")에만 적용한다 — 앱을 막 열었을 때의 자동 확인은
+     restoreSession()의 비동기 복원이 아직 끝나기 전에 먼저 실행될 수도 있어서,
+     그 찰나에 titles.reader가 아직 비어 있는 것을 "다른 문서"로 오판해 멀쩡한
+     링크를 지워버릴 위험이 있다. 자동 경로는 저장된 링크를 그대로 신뢰한다. */
+  const link=interactive?driveLinkValidForCurrent(kind):driveLinkedFor(kind);
+  if(!link||!link.fileId){
+    if(interactive)await driveSaveNew();
+    return;
   }
-  $("driveSyncNow").disabled=false;
-  driveUpdateSyncRow();
+  if(!interactive&&link.autoSyncBlocked)return;
+  if(kind==="map"&&!model)return;
+  if(kind==="cards"&&!deck)return;
+  let content;
+  try{content=driveCurrentContent(kind);}catch(e){return;}
+  const localChanged=content!==link.lastSyncedContent;
+  let remoteMeta;
+  try{remoteMeta=await driveGetFileMeta(link.fileId);}
+  catch(e){if(interactive)toast("동기화하지 못했습니다 — "+e.message);return;}
+  const remoteChanged=remoteMeta.modifiedTime!==link.modifiedTime;
+  if(!localChanged&&!remoteChanged){
+    if(interactive)toast("이미 최신 상태입니다");
+    return;
+  }
+  if(localChanged&&!remoteChanged){
+    try{
+      const res=await driveUpdateFile(link.fileId,content,link.modifiedTime,driveCurrentMime(kind));
+      link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
+      driveSetLinked(kind,link);
+      const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
+      if(kind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
+      else saveFcRecent(deck.name,content,"json",meta);
+      if(interactive)toast("드라이브에 동기화했습니다");
+    }catch(e){
+      if(e.conflict){
+        if(interactive){drivePendingSync={link:link,content:content,remoteMeta:e.remoteMeta};$("driveConflictModal").classList.remove("hidden");}
+        else{link.autoSyncBlocked=true;driveSetLinked(kind,link);toast((kind==="map"?"마인드맵":"플래시카드")+" 자동 동기화가 다른 기기의 변경과 충돌해 멈췄습니다 — ⋮ 메뉴의 '지금 동기화'로 직접 해결해주세요");}
+      }else if(interactive)toast("동기화하지 못했습니다 — "+e.message);
+    }
+    return;
+  }
+  if(!localChanged&&remoteChanged){
+    try{
+      const text=await driveDownload(link.fileId);
+      driveApplyRemoteQuiet(kind,text,{id:link.fileId,name:remoteMeta.name||link.name,modifiedTime:remoteMeta.modifiedTime},link.folderId);
+      if(interactive)toast("드라이브의 최신 내용을 불러왔습니다");
+    }catch(e){if(interactive)toast("최신 내용을 불러오지 못했습니다 — "+e.message);}
+    return;
+  }
+  /* localChanged && remoteChanged — 이 기기와 다른 기기 양쪽에서 바뀐 진짜 충돌 */
+  if(interactive){
+    drivePendingSync={link:link,content:content,remoteMeta:remoteMeta};
+    $("driveConflictModal").classList.remove("hidden");
+  }else{
+    link.autoSyncBlocked=true;driveSetLinked(kind,link);
+    toast((kind==="map"?"마인드맵":"플래시카드")+"이(가) 이 기기와 다른 기기 양쪽에서 바뀌어 자동 동기화를 멈췄습니다 — ⋮ 메뉴의 '지금 동기화'로 직접 해결해주세요");
+  }
 }
-$("driveSyncNow").addEventListener("click",()=>driveSyncNow(false));
+async function driveSyncNow(){
+  $("driveSyncNow").disabled=true;$("driveSyncStatus").textContent="동기화 중…";
+  try{await driveSyncKind(driveKind,true);}
+  finally{$("driveSyncNow").disabled=false;driveUpdateSyncRow();}
+}
+$("driveSyncNow").addEventListener("click",()=>driveSyncNow());
 $("driveSignInBtn").addEventListener("click",async()=>{
   try{await driveAuth.signIn(false);driveShowSignedIn();}
   catch(e){toast("로그인하지 못했습니다 — "+e.message);}
 });
 $("driveSignOutBtn").addEventListener("click",()=>{
-  driveAuth.disconnect();driveFolder=null;driveLinkedMap=null;driveLinkedCards=null;driveNavPath=[];
+  driveAuth.disconnect();driveFolder=null;driveSetLinked("map",null);driveSetLinked("cards",null);driveNavPath=[];
   try{localStorage.removeItem("mfDrive.folder");}catch(e){}
   driveShowSignedOut();
   toast("드라이브 연결을 해제했습니다");
@@ -6347,38 +6493,21 @@ $("driveConflictSaveAs").addEventListener("click",async()=>{
   driveSetLinked(driveKind,null);
   await driveSaveNew();
 });
-/* 일정 시간마다 조용히 자동 동기화 — 사용자가 매번 "지금 동기화"를 누르지 않아도
-   드라이브에 연결된 문서는 바뀐 부분이 있을 때만(내용이 마지막 동기화 시점과
-   똑같으면 건너뛴다) 자동으로 올라간다. 여러 기기에서 그 사이 바뀐 게 있어
-   충돌이 나면(driveUpdateFile이 conflict로 되돌림) 화면을 방해하는 대화상자를
-   억지로 띄우지 않고 조용히 멈추고, 그 문서에는 한 번만 안내 토스트를 띄운 뒤
-   사용자가 ⋮ 메뉴의 "지금 동기화"를 눌러 직접 해결하게 한다 — 자동 저장이 오히려
-   "내가 보던 파일이 자꾸 변한다"는 불안을 키우지 않도록 하기 위함. */
+/* 일정 시간마다 조용히 양방향 동기화 — 사용자가 매번 "지금 동기화"를 누르지 않아도
+   드라이브에 연결된 문서는: 이 기기에서만 바뀌었으면 올라가고, 드라이브 쪽에서만
+   바뀌었으면(다른 기기가 먼저 올린 경우) 자동으로 받아오고, 양쪽 다 바뀐 진짜
+   충돌이면 화면을 방해하는 대화상자를 억지로 띄우지 않고 조용히 멈춘 뒤 한 번만
+   안내 토스트를 띄운다 — 이후 사용자가 ⋮ 메뉴의 "지금 동기화"를 눌러 직접
+   해결하면 그때는 3지선다 대화상자가 뜬다. 앱을 막 열었을 때(driveInlineBoot)와
+   "지금 동기화" 버튼도 같은 로직(driveSyncKind)을 거치므로, "PC에서 작업한 게
+   드라이브에 올라가면 모바일에서도 곧바로 인지해서 받아온다"가 세 경로 모두에서
+   똑같이 보장된다. */
 async function driveAutoSyncTick(){
   if(!driveAuth.hasValidToken())return;
   if(drivePendingSync)return; /* 이미 수동 동기화 충돌 대화상자가 떠 있는 중이면 건드리지 않음 */
   for(const kind of ["map","cards"]){
-    const link=driveLinkedFor(kind);
-    if(!link||!link.fileId||link.autoSyncBlocked)continue;
-    if(kind==="map"&&!model)continue;
-    if(kind==="cards"&&!deck)continue;
-    let content;
-    try{content=driveCurrentContent(kind);}catch(e){continue;}
-    if(content===link.lastSyncedContent)continue;
-    try{
-      const res=await driveUpdateFile(link.fileId,content,link.modifiedTime,driveCurrentMime(kind));
-      link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;
-      const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
-      if(kind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
-      else saveFcRecent(deck.name,content,"json",meta);
-      if($("driveModal")&&!$("driveModal").classList.contains("hidden")&&driveKind===kind)driveUpdateSyncRow();
-    }catch(e){
-      if(e.conflict){
-        link.autoSyncBlocked=true;
-        toast((kind==="map"?"마인드맵":"플래시카드")+" 자동 동기화가 다른 기기의 변경과 충돌해 멈췄습니다 — ⋮ 메뉴의 '지금 동기화'로 직접 해결해주세요");
-      }
-      /* 그 외(네트워크 등 일시적 오류)는 조용히 넘기고 다음 주기에 다시 시도 */
-    }
+    try{await driveSyncKind(kind,false);}catch(e){/* 조용히 넘기고 다음 주기에 다시 시도 */}
+    if($("driveModal")&&!$("driveModal").classList.contains("hidden")&&driveKind===kind)driveUpdateSyncRow();
   }
 }
 setInterval(()=>{driveAutoSyncTick().catch(()=>{});},120000);
@@ -6856,6 +6985,37 @@ function driveTreeFindNode(kind,id){
   }
   return walk(root);
 }
+/* 탐색기 정렬 — 이름순/최근수정순을 전환할 수 있게, 폴더 트리를 새로 받아올 때나
+   전환 버튼을 누를 때나 항상 이 한 곳을 거쳐서 정렬한다. 폴더가 파일보다 항상
+   위에 오는 그룹 순서는 정렬 모드와 무관하게 유지한다. */
+function driveSortMode(){try{return localStorage.getItem("mfDrive.sortMode")||"modified";}catch(e){return "modified";}}
+function driveSetSortMode(m){try{localStorage.setItem("mfDrive.sortMode",m);}catch(e){}}
+function driveSortList(list){
+  const mode=driveSortMode();
+  const arr=list.slice();
+  if(mode==="name")arr.sort((a,b)=>a.name.localeCompare(b.name,"ko"));
+  else arr.sort((a,b)=>new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0));
+  return arr;
+}
+function driveSortNode(node){
+  const folders=node.children.filter(c=>c.type==="folder");
+  const files=node.children.filter(c=>c.type==="file");
+  node.children=[...driveSortList(folders),...driveSortList(files)];
+}
+function driveTreeResortAll(kind){
+  const root=driveTree[kind];
+  if(!root)return;
+  (function walk(n){
+    if(n.type==="folder"&&n.children&&n.children.length){
+      driveSortNode(n);
+      n.children.forEach(walk);
+    }
+  })(root);
+}
+function driveInlineSortLabel(){return driveSortMode()==="name"?"🔤 이름순":"🕒 최근순";}
+function driveInlineUpdateSortBtnLabel(){
+  document.querySelectorAll(".driveInlineSort").forEach(b=>{b.textContent=driveInlineSortLabel();});
+}
 /* 새로고침해도 이미 펼쳐 둔 하위 폴더의 펼침 상태가 사라지지 않도록, 새로 받아온
    폴더 목록에 같은 id가 있으면 그 노드의 expanded/loaded/children을 이어받는다. */
 async function driveTreeLoadChildren(kind,node){
@@ -6869,7 +7029,7 @@ async function driveTreeLoadChildren(kind,node){
   });
   const files=items.filter(f=>f.mimeType!=="application/vnd.google-apps.folder").map(f=>
     ({id:f.id,name:f.name,type:"file",modifiedTime:f.modifiedTime,mimeType:f.mimeType,parent:node.id}));
-  node.children=[...folders,...files];
+  node.children=[...driveSortList(folders),...driveSortList(files)];
   node.loaded=true;
 }
 function driveTreeRenderNode(kind,node,depth){
@@ -7100,6 +7260,15 @@ function bindDriveInline(kind){
       catch(e2){toast("파일을 열지 못했습니다 — "+e2.message);fileRow.style.opacity="";}
       return;
     }
+    const sortToggleBtn=e.target.closest(".driveInlineSort");
+    if(sortToggleBtn){
+      driveSetSortMode(driveSortMode()==="name"?"modified":"name");
+      driveInlineUpdateSortBtnLabel();
+      driveTreeResortAll("map");driveTreeResortAll("cards");
+      driveTreeRender("map");driveTreeRender("cards");
+      toast("정렬: "+(driveSortMode()==="name"?"이름순":"최근 수정순"));
+      return;
+    }
     const topNewBtn=e.target.closest(".driveInlineNewFolder");
     if(topNewBtn){
       const root=driveTree[kind];
@@ -7229,10 +7398,14 @@ async function driveInlineBoot(){
     await driveAuth.signIn(true);
     driveInlineConnected=true;
     await driveInlineShowFor(tab==="cards"?"cards":"map");
+    /* 앱을 막 열었을 때도 "다른 기기가 그 사이 올린 내용"을 곧바로 인지하도록,
+       2분 주기를 기다리지 않고 한 번 바로 확인한다. */
+    driveAutoSyncTick().catch(()=>{});
   }catch(e){/* 조용히 실패 — 로그인 버튼이 그대로 남아있으니 다시 누르면 됨 */}
 }
 bindDriveInline("map");
 bindDriveInline("cards");
+driveInlineUpdateSortBtnLabel();
 $("driveGateLoginMap").addEventListener("click",()=>driveGateLogin("map"));
 $("driveGateLoginCards").addEventListener("click",()=>driveGateLogin("cards"));
 $("driveGateLocalMap").addEventListener("click",()=>openWithPicker());
