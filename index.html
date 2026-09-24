@@ -1527,6 +1527,15 @@ async function driveUpdateFile(fileId,text,expectedModifiedTime,mime){
   const res=await driveApiFetch(DRIVE_UPLOAD_API+"/files/"+fileId+"?uploadType=media&fields=id,name,modifiedTime",{method:"PATCH",headers:{"Content-Type":mime||"application/json"},body:text});
   return res.json();
 }
+async function driveRenameFile(fileId,newName){
+  const res=await driveApiFetch(DRIVE_API+"/files/"+fileId+"?fields=id,name",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:newName})});
+  return res.json();
+}
+/* 완전 삭제(DELETE) 대신 드라이브 휴지통으로만 보낸다 — 되돌릴 수 있게 안전하게. */
+async function driveTrashFile(fileId){
+  const res=await driveApiFetch(DRIVE_API+"/files/"+fileId+"?fields=id,trashed",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({trashed:true})});
+  return res.json();
+}
 
 let seq=1;
 const mk=t=>({id:"n"+(seq++),text:t,note:"",link:"",image:"",folded:false,color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",children:[]});
@@ -6190,7 +6199,7 @@ async function driveApplyDownloaded(text,f,folderId){
   const nm=baseNoExt(f.name);
   if(driveKind==="map")openContent(text,nm,ext,meta);
   else fcOpenFile(text,nm,ext,meta);
-  driveSetLinked(driveKind,{fileId:f.id,modifiedTime:f.modifiedTime,folderId:fid,name:nm,lastSyncTs:Date.now()});
+  driveSetLinked(driveKind,{fileId:f.id,modifiedTime:f.modifiedTime,folderId:fid,name:nm,lastSyncTs:Date.now(),lastSyncedContent:driveCurrentContent(driveKind)});
   $("driveModal").classList.add("hidden");
   driveUpdateSyncRow();
   toast(nm+" 을(를) 열었습니다 — 앞으로 '지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
@@ -6245,7 +6254,7 @@ async function driveSaveNew(){
   try{
     const content=driveCurrentContent(driveKind);
     const res=await driveCreateFile(curId,fname,driveCurrentMime(driveKind),content);
-    driveSetLinked(driveKind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:curId,name:name,lastSyncTs:Date.now()});
+    driveSetLinked(driveKind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:curId,name:name,lastSyncTs:Date.now(),lastSyncedContent:content});
     const meta={method:"drive",driveFileId:res.id,driveModifiedTime:res.modifiedTime,driveFolderId:curId};
     if(driveKind==="map"){titles.reader=name;lastOpenName=name;$("fileName").textContent=name;saveRecent(name,content,ext,meta);}
     else{deck.name=name;titles.cards=name;if(tab==="cards")$("fileName").textContent=name;saveFcRecent(name,content,"json",meta);}
@@ -6262,7 +6271,7 @@ async function driveSyncNow(force){
   $("driveSyncNow").disabled=true;$("driveSyncStatus").textContent="동기화 중…";
   try{
     const res=await driveUpdateFile(link.fileId,content,force?null:link.modifiedTime,driveCurrentMime(driveKind));
-    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();
+    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
     const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
     if(driveKind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
     else saveFcRecent(deck.name,content,"json",meta);
@@ -6311,7 +6320,7 @@ $("driveConflictOverwrite").addEventListener("click",async()=>{
   $("driveConflictModal").classList.add("hidden");
   try{
     const res=await driveUpdateFile(link.fileId,content,null,driveCurrentMime(driveKind));
-    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();
+    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
     const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
     if(driveKind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
     else saveFcRecent(deck.name,content,"json",meta);
@@ -6338,6 +6347,41 @@ $("driveConflictSaveAs").addEventListener("click",async()=>{
   driveSetLinked(driveKind,null);
   await driveSaveNew();
 });
+/* 일정 시간마다 조용히 자동 동기화 — 사용자가 매번 "지금 동기화"를 누르지 않아도
+   드라이브에 연결된 문서는 바뀐 부분이 있을 때만(내용이 마지막 동기화 시점과
+   똑같으면 건너뛴다) 자동으로 올라간다. 여러 기기에서 그 사이 바뀐 게 있어
+   충돌이 나면(driveUpdateFile이 conflict로 되돌림) 화면을 방해하는 대화상자를
+   억지로 띄우지 않고 조용히 멈추고, 그 문서에는 한 번만 안내 토스트를 띄운 뒤
+   사용자가 ⋮ 메뉴의 "지금 동기화"를 눌러 직접 해결하게 한다 — 자동 저장이 오히려
+   "내가 보던 파일이 자꾸 변한다"는 불안을 키우지 않도록 하기 위함. */
+async function driveAutoSyncTick(){
+  if(!driveAuth.hasValidToken())return;
+  if(drivePendingSync)return; /* 이미 수동 동기화 충돌 대화상자가 떠 있는 중이면 건드리지 않음 */
+  for(const kind of ["map","cards"]){
+    const link=driveLinkedFor(kind);
+    if(!link||!link.fileId||link.autoSyncBlocked)continue;
+    if(kind==="map"&&!model)continue;
+    if(kind==="cards"&&!deck)continue;
+    let content;
+    try{content=driveCurrentContent(kind);}catch(e){continue;}
+    if(content===link.lastSyncedContent)continue;
+    try{
+      const res=await driveUpdateFile(link.fileId,content,link.modifiedTime,driveCurrentMime(kind));
+      link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;
+      const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
+      if(kind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
+      else saveFcRecent(deck.name,content,"json",meta);
+      if($("driveModal")&&!$("driveModal").classList.contains("hidden")&&driveKind===kind)driveUpdateSyncRow();
+    }catch(e){
+      if(e.conflict){
+        link.autoSyncBlocked=true;
+        toast((kind==="map"?"마인드맵":"플래시카드")+" 자동 동기화가 다른 기기의 변경과 충돌해 멈췄습니다 — ⋮ 메뉴의 '지금 동기화'로 직접 해결해주세요");
+      }
+      /* 그 외(네트워크 등 일시적 오류)는 조용히 넘기고 다음 주기에 다시 시도 */
+    }
+  }
+}
+setInterval(()=>{driveAutoSyncTick().catch(()=>{});},120000);
 
 /* ═══ 플래시카드: 최근 덱 ═══ */
 function loadFcRecents(){try{const list=JSON.parse(localStorage.getItem("fcweb.recents")||"[]");let ch=false;list.forEach(x=>{if(!x.id){x.id=genId();ch=true;}});if(ch)try{localStorage.setItem("fcweb.recents",JSON.stringify(list));}catch(e){}return list;}catch(e){return[]}}
@@ -6837,6 +6881,7 @@ function driveTreeRenderNode(kind,node,depth){
       +'<button type="button" class="dtNewBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더 안에 새 폴더">＋</button>'
       +'<button type="button" class="dtNewBtn dtImportBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더에 파일 가져오기">📥</button>'
       +'<button type="button" class="dtNewBtn dtNewFileBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더에 새 파일 만들기">📝</button>'
+      +'<button type="button" class="dtNewBtn dtMoreBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" data-type="folder" data-name="'+escA(node.name)+'" title="이름 바꾸기·삭제">⋯</button>'
       +'</div>';
     if(node.expanded){
       if(!node.loaded){
@@ -6857,6 +6902,7 @@ function driveTreeRenderNode(kind,node,depth){
     +'<span class="dtIcon">'+ico+'</span>'
     +'<span class="dtName" title="'+escA(node.name)+'">'+escA(node.name)+'</span>'
     +'<span class="dtMeta">'+dstr+'</span>'
+    +'<button type="button" class="dtNewBtn dtMoreBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" data-type="file" data-name="'+escA(node.name)+'" title="이름 바꾸기·삭제">⋯</button>'
     +'</div>';
 }
 function driveTreeRender(kind){
@@ -6915,7 +6961,7 @@ async function driveTreeOpenFile(kind,node){
   const nm=baseNoExt(node.name);
   if(kind==="map")openContent(text,nm,ext,meta);
   else fcOpenFile(text,nm,ext,meta);
-  driveSetLinked(kind,{fileId:node.id,modifiedTime:node.modifiedTime,folderId:node.parent,name:nm,lastSyncTs:Date.now()});
+  driveSetLinked(kind,{fileId:node.id,modifiedTime:node.modifiedTime,folderId:node.parent,name:nm,lastSyncTs:Date.now(),lastSyncedContent:driveCurrentContent(kind)});
   toast(nm+" 을(를) 열었습니다 — 앞으로 ⋮ 메뉴의 '구글 드라이브 › 지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
 }
 /* 폴더 이동(드래그앤드롭) — 지금 드래그 중인 항목을 여기에 담아 둔다. 드롭 시점에
@@ -6972,9 +7018,64 @@ async function driveTreeNewFile(kind,parentId){
       saveFcRecent(name,content,ext,meta);
       fcOpenCard(0);
     }
-    driveSetLinked(kind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:parentId,name,lastSyncTs:Date.now()});
+    driveSetLinked(kind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:parentId,name,lastSyncTs:Date.now(),lastSyncedContent:driveCurrentContent(kind)});
     toast("'"+name+"' 파일을 만들었습니다");
   }catch(e){toast("파일을 만들지 못했습니다 — "+e.message);}
+}
+/* 폴더·파일 행의 "⋯" 버튼 — 우클릭 메뉴(ctxMenu)와 같은 부품을 그대로 재사용해서
+   "이름 바꾸기"/"삭제"만 담은 작은 팝업을 누른 위치 옆에 띄운다. */
+function driveRowMenu(kind,type,id,name,e){
+  const m=ctxEl();m.innerHTML="";m.style.maxHeight="";m.style.overflowY="";
+  const b1=document.createElement("button");
+  b1.className="mitem";b1.textContent="✏️ 이름 바꾸기";
+  b1.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();driveTreeRename(kind,type,id,name);});
+  m.appendChild(b1);
+  const b2=document.createElement("button");
+  b2.className="mitem danger";b2.textContent="🗑️ 삭제(휴지통으로)";
+  b2.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();driveTreeDelete(kind,type,id,name);});
+  m.appendChild(b2);
+  placeMenu(m,e);
+}
+async function driveTreeRename(kind,type,id,oldName){
+  const v=prompt(type==="folder"?"폴더 이름 바꾸기":"파일 이름 바꾸기",oldName);
+  if(!v||!v.trim()||v.trim()===oldName)return;
+  const newName=v.trim();
+  try{
+    await driveRenameFile(id,newName);
+    const node=driveTreeFindNode(kind,id);
+    if(node)node.name=newName;
+    driveTreeRender(kind);
+    const link=driveLinkedFor(kind);
+    if(link&&link.fileId===id){
+      const nm=baseNoExt(newName);
+      link.name=nm;
+      if(kind==="map"){titles.reader=nm;lastOpenName=nm;$("fileName").textContent=nm;}
+      else{if(deck)deck.name=nm;titles.cards=nm;if(tab==="cards")$("fileName").textContent=nm;}
+    }
+    toast("이름을 바꿨습니다");
+  }catch(e){toast("이름을 바꾸지 못했습니다 — "+e.message);}
+}
+async function driveTreeDelete(kind,type,id,name){
+  const msg=type==="folder"
+    ?"'"+name+"' 폴더를 휴지통으로 보낼까요? 안의 파일도 함께 이동합니다. 드라이브 휴지통에서 복구할 수 있어요."
+    :"'"+name+"'을(를) 휴지통으로 보낼까요? 드라이브 휴지통에서 복구할 수 있어요.";
+  if(!confirm(msg))return;
+  try{
+    await driveTrashFile(id);
+    const node=driveTreeFindNode(kind,id);
+    if(node&&node.parent){
+      const pn=driveTreeFindNode(kind,node.parent);
+      if(pn&&pn.children){const i=pn.children.findIndex(c=>c.id===id);if(i>=0)pn.children.splice(i,1);}
+    }
+    driveTreeRender(kind);
+    const link=driveLinkedFor(kind);
+    if(link&&link.fileId===id){
+      driveSetLinked(kind,null);
+      toast("지금 보던 파일이 삭제(휴지통 이동)됐습니다 — 계속 편집한 내용은 ⋮ 메뉴의 '구글 드라이브'에서 새로 저장할 수 있어요");
+    }else{
+      toast("삭제했습니다");
+    }
+  }catch(e){toast("삭제하지 못했습니다 — "+e.message);}
 }
 function bindDriveInline(kind){
   const wrap=$(kind==="map"?"driveInlineMap":"driveInlineCards");
@@ -6984,6 +7085,8 @@ function bindDriveInline(kind){
     if(importBtn){e.stopPropagation();driveTreeImportInto(kind,importBtn.dataset.id);return;}
     const newFileBtn=e.target.closest(".dtNewFileBtn");
     if(newFileBtn){e.stopPropagation();await driveTreeNewFile(kind,newFileBtn.dataset.id);return;}
+    const moreBtn=e.target.closest(".dtMoreBtn");
+    if(moreBtn){e.stopPropagation();driveRowMenu(kind,moreBtn.dataset.type,moreBtn.dataset.id,moreBtn.dataset.name,e);return;}
     const newBtn=e.target.closest(".dtNewBtn");
     if(newBtn){e.stopPropagation();await driveTreeNewFolder(kind,newBtn.dataset.id);return;}
     const folderRow=e.target.closest(".dtFolderRow");
