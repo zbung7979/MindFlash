@@ -462,6 +462,8 @@ body:has(#ttsBar:not(.hidden)) #toast{bottom:58px}
 .driveGateText{margin-top:10px;font-size:13.5px;color:var(--muted);line-height:1.5}
 .driveGateWarn{margin-top:10px;font-size:11.5px;color:#c14a36}
 .driveGate button.pri{margin-top:16px;padding:11px 22px;border-radius:10px;border:1px solid #5b5470;background:#5b5470;color:#fff;font-size:14.5px;font-weight:600}
+.driveGateOr{margin-top:14px;font-size:11.5px;color:var(--muted)}
+.driveGate button.sec{margin-top:10px;padding:9px 20px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--c0t);font-size:13.5px;font-weight:600}
 .driveInline{max-width:640px;margin:5vh auto 0;text-align:left;padding:0 22px}
 .driveInlineBar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .driveInlineTitle{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--c0t)}
@@ -477,6 +479,8 @@ body:has(#ttsBar:not(.hidden)) #toast{bottom:58px}
 .dtMeta{flex:none;font-size:10.5px;color:var(--muted)}
 .dtNewBtn{flex:none;font-size:12.5px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:6px;width:22px;height:22px;line-height:1;background:var(--panel);opacity:.6}
 .dtNewBtn:hover{opacity:1;background:var(--rowhover)}
+.dtImportBtn,.dtNewFileBtn{font-size:11px}
+.dtRow.dtDragOver{background:var(--rowhover);outline:2px dashed var(--chev);outline-offset:-2px}
 .dtLoading,.dtEmptyNode{color:var(--muted);font-size:11.5px;padding:3px 4px 6px}
 #fcEmpty.drag{outline:3px dashed #b9aed0;outline-offset:-14px}
 
@@ -792,6 +796,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <input type="file" id="fileInput" accept=".mm,.xml,.opml,.md,.markdown,.txt,.csv" hidden>
 <input type="file" id="fcFileInput" accept=".csv,.tsv,.tab,.txt,.json,.md,.markdown" hidden>
+<input type="file" id="driveImportInput" hidden>
 <input type="file" id="imgInput" accept="image/*" hidden>
 
 <main id="readerMain">
@@ -801,6 +806,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       <div class="driveGateText">구글 드라이브에 로그인하면 여기에 마인드맵 폴더가 바로 보여요</div>
       <button id="driveGateLoginMap" class="pri">구글 계정으로 로그인</button>
       <div id="driveGateWarnMap" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
+      <div class="driveGateOr">또는</div>
+      <button id="driveGateLocalMap" class="sec">💻 로컬 파일 열기</button>
       <div id="recentsWrap" style="margin-top:26px;text-align:left" hidden>
         <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;justify-content:space-between"><span>📁 최근 파일</span><span style="font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span></div>
         <div id="recents"></div>
@@ -811,6 +818,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <div class="driveInlineTitle">📁 마인드맵</div>
         <div class="driveInlineBtns">
           <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact driveInlineImport">📥 가져오기</button>
+          <button type="button" class="mact driveInlineNewFile">📝 새 파일</button>
           <button type="button" class="mact driveInlineSync">↻ 동기화</button>
         </div>
       </div>
@@ -827,6 +836,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       <div class="driveGateText">구글 드라이브에 로그인하면 여기에 플래시카드 폴더가 바로 보여요</div>
       <button id="driveGateLoginCards" class="pri">구글 계정으로 로그인</button>
       <div id="driveGateWarnCards" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
+      <div class="driveGateOr">또는</div>
+      <button id="driveGateLocalCards" class="sec">💻 로컬 파일 열기</button>
       <div id="fcRecentsWrap" style="margin-top:26px;text-align:left" hidden>
         <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;gap:8px"><span>🗂 최근 덱</span><span style="flex:1;font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span><button id="fcMgr" style="font-size:12px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel)">관리</button></div>
         <div id="fcRecents"></div>
@@ -837,6 +848,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <div class="driveInlineTitle">📁 플래시카드</div>
         <div class="driveInlineBtns">
           <button type="button" class="mact driveInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact driveInlineImport">📥 가져오기</button>
+          <button type="button" class="mact driveInlineNewFile">📝 새 파일</button>
           <button type="button" class="mact driveInlineSync">↻ 동기화</button>
         </div>
       </div>
@@ -6775,6 +6788,7 @@ renderFcRecents();
 const DRIVE_KIND_FOLDER_NAME={map:"마인드맵",cards:"플래시카드"};
 let driveInlineConnected=false;
 let driveTree={map:null,cards:null},driveInlineRendered={map:false,cards:false};
+let driveImportTarget=null; /* {kind,parentId} — "가져오기" 버튼을 누른 폴더를 기억해 두었다가, 숨겨진 파일 입력창에서 change가 오면 그 폴더로 업로드한다 */
 function driveInlineRootKey(kind){return "mfDrive.subfolder."+kind;}
 function driveInlineLoadRoot(kind){try{return JSON.parse(localStorage.getItem(driveInlineRootKey(kind))||"null");}catch(e){return null;}}
 function driveInlineSaveRoot(kind,f){try{localStorage.setItem(driveInlineRootKey(kind),JSON.stringify(f));}catch(e){}}
@@ -6816,11 +6830,13 @@ async function driveTreeLoadChildren(kind,node){
 }
 function driveTreeRenderNode(kind,node,depth){
   if(node.type==="folder"){
-    let html='<div class="dtRow dtFolderRow" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
+    let html='<div class="dtRow dtFolderRow" draggable="true" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
       +'<span class="dtChevron'+(node.expanded?" open":"")+'">▸</span>'
       +'<span class="dtIcon">📁</span>'
       +'<span class="dtName">'+escA(node.name)+'</span>'
       +'<button type="button" class="dtNewBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더 안에 새 폴더">＋</button>'
+      +'<button type="button" class="dtNewBtn dtImportBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더에 파일 가져오기">📥</button>'
+      +'<button type="button" class="dtNewBtn dtNewFileBtn" data-kind="'+kind+'" data-id="'+escA(node.id)+'" title="이 폴더에 새 파일 만들기">📝</button>'
       +'</div>';
     if(node.expanded){
       if(!node.loaded){
@@ -6836,7 +6852,7 @@ function driveTreeRenderNode(kind,node,depth){
   const dt=node.modifiedTime?new Date(node.modifiedTime):null;
   const dstr=dt?(dt.getMonth()+1)+"/"+dt.getDate():"";
   const ico=/\.(mm|xml|opml|md|markdown|txt|csv)$/i.test(node.name)?"🧠":"🗂";
-  return '<div class="dtRow dtFileRow" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
+  return '<div class="dtRow dtFileRow" draggable="true" data-kind="'+kind+'" data-id="'+escA(node.id)+'" style="padding-left:'+(depth*18)+'px">'
     +'<span class="dtChevron" style="visibility:hidden">▸</span>'
     +'<span class="dtIcon">'+ico+'</span>'
     +'<span class="dtName" title="'+escA(node.name)+'">'+escA(node.name)+'</span>'
@@ -6902,10 +6918,72 @@ async function driveTreeOpenFile(kind,node){
   driveSetLinked(kind,{fileId:node.id,modifiedTime:node.modifiedTime,folderId:node.parent,name:nm,lastSyncTs:Date.now()});
   toast(nm+" 을(를) 열었습니다 — 앞으로 ⋮ 메뉴의 '구글 드라이브 › 지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
 }
+/* 폴더 이동(드래그앤드롭) — 지금 드래그 중인 항목을 여기에 담아 둔다. 드롭 시점에
+   같은 kind의 폴더 행 위인지 확인해서, 다른 kind(마인드맵↔플래시카드) 트리로는
+   섞여 들어가지 않게 막는다. */
+let driveDragSource=null;
+async function driveMoveItem(fileId,newParentId,oldParentId){
+  const res=await driveApiFetch(DRIVE_API+"/files/"+fileId+"?addParents="+encodeURIComponent(newParentId)+"&removeParents="+encodeURIComponent(oldParentId)+"&fields=id,parents",{method:"PATCH"});
+  return res.json();
+}
+async function driveTreeRefreshNode(kind,nodeId){
+  const node=nodeId?driveTreeFindNode(kind,nodeId):driveTree[kind];
+  if(!node)return;
+  await driveTreeLoadChildren(kind,node);
+}
+function mimeForImportName(name){
+  const ext=(name.split(".").pop()||"").toLowerCase();
+  if(ext==="json")return "application/json";
+  if(ext==="mm"||ext==="opml"||ext==="xml")return "application/xml";
+  if(ext==="csv")return "text/csv";
+  return "text/plain";
+}
+function driveTreeImportInto(kind,parentId){
+  driveImportTarget={kind,parentId};
+  $("driveImportInput").accept=kind==="cards"?".csv,.tsv,.tab,.txt,.md,.markdown,.json":".mm,.xml,.opml,.md,.markdown,.txt,.csv";
+  $("driveImportInput").click();
+}
+function fcBlankDeckJSON(){
+  return JSON.stringify([{q:"",a:"",done:false,link:"",image:"",color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",st:"",shape:"",ef:2.5,ivl:0,reps:0,lapses:0,due:"",last:"",hlr:[],sr:[]}],null,2)+"\n";
+}
+async function driveTreeNewFile(kind,parentId){
+  const v=prompt("새 파일 이름",kind==="map"?"새 맵":"새 덱");
+  if(!v||!v.trim())return;
+  const name=v.trim();
+  const ext=kind==="map"?"mm":"json";
+  const mime=kind==="map"?"application/xml":"application/json";
+  const content=kind==="map"?'<map version="1.0.1"><node TEXT="중심 주제"/></map>':fcBlankDeckJSON();
+  try{
+    const res=await driveCreateFile(parentId,name+"."+ext,mime,content);
+    await driveTreeRefreshNode(kind,parentId);
+    const pn=driveTreeFindNode(kind,parentId);if(pn)pn.expanded=true;
+    driveTreeRender(kind);
+    const meta={method:"drive",driveFileId:res.id,driveModifiedTime:res.modifiedTime,driveFolderId:parentId};
+    if(kind==="map"){
+      openContent(content,name,ext,meta);openEdit(model);
+    }else{
+      /* fcOpenFile()은 텍스트를 fcParseAny()로 다시 해석하는데, 문제·답이 둘 다
+         빈 카드는 거기서 걸러져(cards.filter(c=>c.q||c.a)) "카드를 찾을 수 없습니다"
+         로 실패한다 — 방금 만든 빈 덱은 텍스트를 되읽지 않고 fcNew()처럼 deck을
+         직접 구성해서 열어야 한다. */
+      fcFileHandle=null;fcLastOpenExt=ext;
+      deck={name,cards:[fcCard({q:"",a:"",done:false})]};
+      fcAfterLoad(false);
+      saveFcRecent(name,content,ext,meta);
+      fcOpenCard(0);
+    }
+    driveSetLinked(kind,{fileId:res.id,modifiedTime:res.modifiedTime,folderId:parentId,name,lastSyncTs:Date.now()});
+    toast("'"+name+"' 파일을 만들었습니다");
+  }catch(e){toast("파일을 만들지 못했습니다 — "+e.message);}
+}
 function bindDriveInline(kind){
   const wrap=$(kind==="map"?"driveInlineMap":"driveInlineCards");
   if(!wrap)return;
   wrap.addEventListener("click",async e=>{
+    const importBtn=e.target.closest(".dtImportBtn");
+    if(importBtn){e.stopPropagation();driveTreeImportInto(kind,importBtn.dataset.id);return;}
+    const newFileBtn=e.target.closest(".dtNewFileBtn");
+    if(newFileBtn){e.stopPropagation();await driveTreeNewFile(kind,newFileBtn.dataset.id);return;}
     const newBtn=e.target.closest(".dtNewBtn");
     if(newBtn){e.stopPropagation();await driveTreeNewFolder(kind,newBtn.dataset.id);return;}
     const folderRow=e.target.closest(".dtFolderRow");
@@ -6925,6 +7003,18 @@ function bindDriveInline(kind){
       if(root)await driveTreeNewFolder(kind,root.id);
       return;
     }
+    const topImportBtn=e.target.closest(".driveInlineImport");
+    if(topImportBtn){
+      const root=driveTree[kind];
+      if(root)driveTreeImportInto(kind,root.id);
+      return;
+    }
+    const topNewFileBtn=e.target.closest(".driveInlineNewFile");
+    if(topNewFileBtn){
+      const root=driveTree[kind];
+      if(root)await driveTreeNewFile(kind,root.id);
+      return;
+    }
     const syncBtn=e.target.closest(".driveInlineSync");
     if(syncBtn){
       syncBtn.disabled=true;
@@ -6933,6 +7023,58 @@ function bindDriveInline(kind){
       syncBtn.disabled=false;
       return;
     }
+  });
+  /* 탐색기처럼 폴더·파일을 끌어다 다른 폴더 위에 놓으면 그 폴더 "안"으로 옮긴다.
+     빈 곳(트리 바깥 여백)에 놓으면 최상위 폴더로 옮긴다. 자기 자신 위나 이미 있는
+     자리에 놓는 건 무시하고, 폴더를 자신의 하위 폴더 안으로 옮기는 것도 막는다
+     (로드해서 알고 있는 범위 안에서). */
+  wrap.addEventListener("dragstart",e=>{
+    const row=e.target.closest(".dtRow");
+    if(!row){driveDragSource=null;return;}
+    const node=driveTreeFindNode(kind,row.dataset.id);
+    if(!node){driveDragSource=null;return;}
+    driveDragSource={kind,id:node.id,parent:node.parent,type:node.type};
+    try{e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",node.id);}catch(err){}
+  });
+  wrap.addEventListener("dragover",e=>{
+    if(!driveDragSource||driveDragSource.kind!==kind)return;
+    e.preventDefault();
+    const row=e.target.closest(".dtFolderRow");
+    wrap.querySelectorAll(".dtDragOver").forEach(el=>{if(el!==row)el.classList.remove("dtDragOver");});
+    if(row)row.classList.add("dtDragOver");
+  });
+  wrap.addEventListener("dragleave",e=>{
+    const row=e.target.closest(".dtFolderRow");
+    if(row&&!row.contains(e.relatedTarget))row.classList.remove("dtDragOver");
+  });
+  wrap.addEventListener("dragend",()=>{
+    wrap.querySelectorAll(".dtDragOver").forEach(el=>el.classList.remove("dtDragOver"));
+    driveDragSource=null;
+  });
+  wrap.addEventListener("drop",async e=>{
+    if(!driveDragSource||driveDragSource.kind!==kind)return;
+    e.preventDefault();
+    wrap.querySelectorAll(".dtDragOver").forEach(el=>el.classList.remove("dtDragOver"));
+    const row=e.target.closest(".dtFolderRow");
+    const root=driveTree[kind];
+    const targetId=row?row.dataset.id:(root&&root.id);
+    const src=driveDragSource;driveDragSource=null;
+    if(!targetId||!src)return;
+    if(targetId===src.id||targetId===src.parent)return;
+    if(src.type==="folder"){
+      const srcNode=driveTreeFindNode(kind,src.id);
+      let cyc=(targetId===src.id);
+      if(srcNode)(function walk(n){if(!n||!n.children)return;for(const c of n.children){if(c.id===targetId)cyc=true;if(c.children)walk(c);}})(srcNode);
+      if(cyc){toast("폴더를 그 하위 폴더 안으로는 옮길 수 없습니다");return;}
+    }
+    try{
+      await driveMoveItem(src.id,targetId,src.parent);
+      await driveTreeRefreshNode(kind,src.parent);
+      const tn=driveTreeFindNode(kind,targetId);if(tn)tn.expanded=true;
+      await driveTreeRefreshNode(kind,targetId);
+      driveTreeRender(kind);
+      toast("옮겼습니다");
+    }catch(err){toast("옮기지 못했습니다 — "+err.message);}
   });
 }
 async function driveInlineShowFor(kind){
@@ -6990,6 +7132,23 @@ bindDriveInline("map");
 bindDriveInline("cards");
 $("driveGateLoginMap").addEventListener("click",()=>driveGateLogin("map"));
 $("driveGateLoginCards").addEventListener("click",()=>driveGateLogin("cards"));
+$("driveGateLocalMap").addEventListener("click",()=>openWithPicker());
+$("driveGateLocalCards").addEventListener("click",()=>fcOpenWithPicker());
+$("driveImportInput").addEventListener("change",async e=>{
+  const f=e.target.files[0];
+  e.target.value="";
+  if(!f||!driveImportTarget)return;
+  const {kind,parentId}=driveImportTarget;
+  driveImportTarget=null;
+  try{
+    const text=await f.text();
+    await driveCreateFile(parentId,f.name,mimeForImportName(f.name),text);
+    await driveTreeRefreshNode(kind,parentId);
+    const pn=driveTreeFindNode(kind,parentId);if(pn)pn.expanded=true;
+    driveTreeRender(kind);
+    toast("'"+f.name+"' 을(를) 드라이브에 가져왔습니다");
+  }catch(err){toast("가져오지 못했습니다 — "+err.message);}
+});
 driveInlineBoot();
 </script>
 </body>
