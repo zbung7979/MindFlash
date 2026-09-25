@@ -1636,7 +1636,13 @@ function fontDB(){return new Promise((res,rej)=>{try{const rq=indexedDB.open("mm
 function dbPutFont(name,base64){return fontDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put({name:name,base64:base64},"fontfile");tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);})).catch(()=>{});}
 function dbGetFont(){return fontDB().then(db=>new Promise((res,rej)=>{const rq=db.transaction("kv").objectStore("kv").get("fontfile");rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error);})).catch(()=>null);}
 function restoreFontFile(){dbGetFont().then(r=>{if(r&&r.base64&&prefs.font==="custom"&&prefs.fontFile)injectFontFace(r.base64);}).catch(()=>{});}
-function idbSet(key,val){return fontDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put(val,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);})).catch(()=>{});}
+function idbSet(key,val){
+  /* IndexedDB 쓰기가 (저장공간 부족·브라우저가 백그라운드 탭의 DB 연결을 끊는 경우 등으로)
+     조용히 실패해도 편집 세션 스냅샷만은 사라지지 않도록, localStorage에도 같은 내용을
+     함께 남긴다 — IndexedDB가 완전히 막혀 있어도 이 백업으로 복원할 수 있다. */
+  const backup=()=>{if(key==="session")try{localStorage.setItem("mf.sessionBackup",JSON.stringify(val));}catch(e){}};
+  return fontDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put(val,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);})).then(backup).catch(backup);
+}
 function idbGet(key){return fontDB().then(db=>new Promise((res,rej)=>{const rq=db.transaction("kv").objectStore("kv").get(key);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error);})).catch(()=>null);}
 function applyFontFile(name,base64){
   injectFontFace(base64);
@@ -3609,8 +3615,21 @@ function persistSession(){
   if(fileHandle)idbSet("fhandle",fileHandle);
 }
 function scheduleSession(){clearTimeout(sessionTimer);sessionTimer=setTimeout(persistSession,800);}
+/* 탭이 백그라운드로 가거나(모바일에서 홈 화면으로 나가는 경우 등) 닫히는 순간,
+   800ms 디바운스 타이머가 아직 안 끝났어도 그 시점의 최신 내용을 바로 저장한다 —
+   디바운스 도중 브라우저가 탭을 정지/폐기하면 그 타이머가 끝내 실행되지 못해
+   마지막 편집분이 사라질 수 있었다. visibilitychange(hidden)와 pagehide 둘 다
+   걸어서, 둘 중 먼저 오는 신호에서 즉시 저장한다. */
+function flushSessionNow(){if(model){clearTimeout(sessionTimer);persistSession();}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushSessionNow();});
+addEventListener("pagehide",flushSessionNow);
 function restoreSession(){
   idbGet("session").then(sess=>{
+    /* IndexedDB 쪽 세션이 비어있거나(디비 접근 자체가 막혔던 경우) localStorage 백업보다
+       더 오래됐으면(디비 쓰기가 조용히 실패해온 경우) 백업을 대신 쓴다 — 둘 중 더 최신 것. */
+    let backup=null;
+    try{backup=JSON.parse(localStorage.getItem("mf.sessionBackup")||"null");}catch(e){}
+    if(backup&&backup.content&&(!sess||!sess.ts||backup.ts>sess.ts))sess=backup;
     if(!sess||!sess.content)return;
     idbGet("fhandle").then(h=>{
       try{
@@ -6184,7 +6203,13 @@ function driveUpdateSyncRow(){
   const link=driveLinkedFor(driveKind);
   if(link&&link.fileId){
     $("driveSyncRow").style.display="flex";
-    $("driveSyncStatus").textContent=link.name+"에 연결됨"+(link.lastSyncTs?" · "+driveRelTime(link.lastSyncTs):"");
+    if(driveSyncDead){
+      $("driveSyncStatus").textContent="⚠ 자동 동기화 연결이 끊겼습니다 — 다시 로그인해주세요";
+      $("driveSyncStatus").style.color="#c0392b";
+    }else{
+      $("driveSyncStatus").textContent=link.name+"에 연결됨"+(link.lastSyncTs?" · "+driveRelTime(link.lastSyncTs):"");
+      $("driveSyncStatus").style.color="";
+    }
     $("driveSaveNew").textContent="＋ 다른 파일로 새로 저장";
   }else{
     $("driveSyncRow").style.display="none";
@@ -6502,8 +6527,23 @@ $("driveConflictSaveAs").addEventListener("click",async()=>{
    "지금 동기화" 버튼도 같은 로직(driveSyncKind)을 거치므로, "PC에서 작업한 게
    드라이브에 올라가면 모바일에서도 곧바로 인지해서 받아온다"가 세 경로 모두에서
    똑같이 보장된다. */
+let driveSyncDead=false;
 async function driveAutoSyncTick(){
-  if(!driveAuth.hasValidToken())return;
+  if(!driveAuth.hasValidToken()){
+    /* 예전 버전은 여기서 그냥 조용히 멈췄다 — 액세스 토큰이 (세션 메모리에만 있어서)
+       한 시간 안팎으로 만료되면, 아무 경고도 없이 그 뒤로 자동 동기화가 영원히
+       죽어있는 채로 남는 실제 데이터 손실 버그였다. 이제는 조용한(팝업 없는)
+       재인증을 먼저 시도하고, 그마저 실패해야만(구글 세션 자체가 끊긴 경우) 딱
+       한 번 경고하고 상태 표시를 바꾼다 — 매 2분마다 반복 경고하지 않는다. */
+    if(!driveAuth.everConnected())return;
+    try{await driveAuth.getToken();}
+    catch(e){
+      if(!driveSyncDead){driveSyncDead=true;toast("자동 동기화 연결이 끊겼습니다 — ⋮ 메뉴의 '구글 드라이브'에서 다시 로그인해주세요");}
+      driveUpdateSyncRow();
+      return;
+    }
+  }
+  driveSyncDead=false;
   if(drivePendingSync)return; /* 이미 수동 동기화 충돌 대화상자가 떠 있는 중이면 건드리지 않음 */
   for(const kind of ["map","cards"]){
     try{await driveSyncKind(kind,false);}catch(e){/* 조용히 넘기고 다음 주기에 다시 시도 */}
@@ -7394,14 +7434,26 @@ async function driveInlineBoot(){
     return;
   }
   if(!driveAuth.everConnected())return;
-  try{
-    await driveAuth.signIn(true);
-    driveInlineConnected=true;
-    await driveInlineShowFor(tab==="cards"?"cards":"map");
-    /* 앱을 막 열었을 때도 "다른 기기가 그 사이 올린 내용"을 곧바로 인지하도록,
-       2분 주기를 기다리지 않고 한 번 바로 확인한다. */
-    driveAutoSyncTick().catch(()=>{});
-  }catch(e){/* 조용히 실패 — 로그인 버튼이 그대로 남아있으니 다시 누르면 됨 */}
+  /* 예전에 로그인한 적이 있는데 이 조용한 재인증이 실패하면, 화면에는 "구글
+     드라이브에 로그인하면…" 안내 박스(⋮ 메뉴가 아니라 첫 화면에 뜨는 것)가 그대로
+     남아, 사용자가 이를 "구글 로그인 화면이 떴다"로 느끼게 된다. 실제로는 대부분
+     구글 쪽의 일시적인 응답 지연·타이밍 문제일 뿐이라, 한 번 더 짧게 재시도해서
+     이런 경우를 최대한 조용히 넘긴다. 그래도 안 되면(계정 세션 자체가 끊긴 경우)
+     기존처럼 조용히 흘려보내고 로그인 버튼을 그대로 남긴다 — 최근 파일 목록은
+     이 박스 안에도 그대로 보이므로 로컬로 이어서 작업하는 데는 문제가 없다. */
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      await driveAuth.signIn(true);
+      driveInlineConnected=true;
+      await driveInlineShowFor(tab==="cards"?"cards":"map");
+      /* 앱을 막 열었을 때도 "다른 기기가 그 사이 올린 내용"을 곧바로 인지하도록,
+         2분 주기를 기다리지 않고 한 번 바로 확인한다. */
+      driveAutoSyncTick().catch(()=>{});
+      return;
+    }catch(e){
+      if(attempt===0)await new Promise(r=>setTimeout(r,1500));
+    }
+  }
 }
 bindDriveInline("map");
 bindDriveInline("cards");
