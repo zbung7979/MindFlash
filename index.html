@@ -705,7 +705,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
     <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2.5a7.5 7.5 0 100 15c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h1.9A3.5 3.5 0 0018 8c0-3-3.6-5.5-8-5.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="8" r="1.1" fill="currentColor"/><circle cx="10" cy="5.8" r="1.1" fill="currentColor"/><circle cx="14" cy="8" r="1.1" fill="currentColor"/></svg></button>
   <button class="iconbtn" id="btnTheme" title="다크모드" aria-label="다크모드 전환"></button>
   <span class="abdiv"></span>
-  <button class="iconbtn" id="btnDriveSync" title="구글 드라이브 동기화" aria-label="구글 드라이브 동기화">
+  <button class="iconbtn" id="btnDriveSync" title="구글 드라이브 백업" aria-label="구글 드라이브 백업">
     <svg width="20" height="20" viewBox="0 0 20 20"><path d="M6.4 14.6a3.35 3.35 0 01-.5-6.66 4.3 4.3 0 018.25-1.16 3.15 3.15 0 01-.3 7.82H6.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
     <span class="driveSyncDot"></span>
   </button>
@@ -807,17 +807,19 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 <input type="file" id="fileInput" accept=".mm,.xml,.opml,.md,.markdown,.txt,.csv" hidden>
 <input type="file" id="fcFileInput" accept=".csv,.tsv,.tab,.txt,.json,.md,.markdown" hidden>
 <input type="file" id="driveImportInput" hidden>
+<input type="file" id="localImportInput" hidden>
 <input type="file" id="imgInput" accept="image/*" hidden>
 
 <main id="readerMain">
   <div id="empty">
     <div id="driveGateMap" class="driveGate">
       <div class="driveGateIcon">☁</div>
-      <div class="driveGateText">구글 드라이브에 로그인하면 여기에 마인드맵 폴더가 바로 보여요</div>
+      <div class="driveGateText">구글 드라이브(백업 전용) — 로그인하면 예전에 백업해둔 마인드맵을 볼 수 있어요</div>
       <button id="driveGateLoginMap" class="pri">구글 계정으로 로그인</button>
       <div id="driveGateWarnMap" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
       <div class="driveGateOr">또는</div>
       <button id="driveGateLocalMap" class="sec">💻 로컬 파일 열기</button>
+      <button id="localGateConnectMap" class="sec" style="margin-top:8px">📂 로컬 폴더 연결(항상 여기서 열어보기)</button>
       <div id="recentsWrap" style="margin-top:26px;text-align:left" hidden>
         <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;justify-content:space-between"><span>📁 최근 파일</span><span style="font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span></div>
         <div id="recents"></div>
@@ -836,6 +838,20 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       </div>
       <div class="driveTree"></div>
     </div>
+    <div id="localInlineMap" class="driveInline" hidden>
+      <div class="driveInlineBar">
+        <div class="driveInlineTitle">📂 로컬 폴더 — <span id="localFolderNameMap"></span></div>
+        <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineSort" title="정렬 방식 전환"></button>
+          <button type="button" class="mact localInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact localInlineImport">📥 가져오기</button>
+          <button type="button" class="mact localInlineNewFile">📝 새 파일</button>
+          <button type="button" class="mact localInlineSync">↻ 새로고침</button>
+          <button type="button" class="mact localInlineDisconnect">폴더 끊기</button>
+        </div>
+      </div>
+      <div class="driveTree"></div>
+    </div>
   </div>
   <div id="list"></div>
 </main>
@@ -844,11 +860,12 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <div id="fcEmpty">
     <div id="driveGateCards" class="driveGate">
       <div class="driveGateIcon">☁</div>
-      <div class="driveGateText">구글 드라이브에 로그인하면 여기에 플래시카드 폴더가 바로 보여요</div>
+      <div class="driveGateText">구글 드라이브(백업 전용) — 로그인하면 예전에 백업해둔 플래시카드를 볼 수 있어요</div>
       <button id="driveGateLoginCards" class="pri">구글 계정으로 로그인</button>
       <div id="driveGateWarnCards" class="driveGateWarn" hidden>이 페이지가 https 주소로 열려 있어야 로그인할 수 있어요 — GitHub Pages 주소로 접속해주세요</div>
       <div class="driveGateOr">또는</div>
       <button id="driveGateLocalCards" class="sec">💻 로컬 파일 열기</button>
+      <button id="localGateConnectCards" class="sec" style="margin-top:8px">📂 로컬 폴더 연결(항상 여기서 열어보기)</button>
       <div id="fcRecentsWrap" style="margin-top:26px;text-align:left" hidden>
         <div style="font-size:15px;font-weight:700;color:var(--c0t);display:flex;align-items:center;gap:8px"><span>🗂 최근 덱</span><span style="flex:1;font-size:11.5px;font-weight:400;color:var(--muted)">왼쪽으로 밀어서 삭제</span><button id="fcMgr" style="font-size:12px;font-weight:700;color:var(--chev);border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel)">관리</button></div>
         <div id="fcRecents"></div>
@@ -863,6 +880,20 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
           <button type="button" class="mact driveInlineImport">📥 가져오기</button>
           <button type="button" class="mact driveInlineNewFile">📝 새 파일</button>
           <button type="button" class="mact driveInlineSync">↻ 동기화</button>
+        </div>
+      </div>
+      <div class="driveTree"></div>
+    </div>
+    <div id="localInlineCards" class="driveInline" hidden>
+      <div class="driveInlineBar">
+        <div class="driveInlineTitle">📂 로컬 폴더 — <span id="localFolderNameCards"></span></div>
+        <div class="driveInlineBtns">
+          <button type="button" class="mact driveInlineSort" title="정렬 방식 전환"></button>
+          <button type="button" class="mact localInlineNewFolder">＋새 폴더</button>
+          <button type="button" class="mact localInlineImport">📥 가져오기</button>
+          <button type="button" class="mact localInlineNewFile">📝 새 파일</button>
+          <button type="button" class="mact localInlineSync">↻ 새로고침</button>
+          <button type="button" class="mact localInlineDisconnect">폴더 끊기</button>
         </div>
       </div>
       <div class="driveTree"></div>
@@ -1342,7 +1373,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
     <div class="body">
       <button id="driveBackupOpenBtn" style="width:100%;height:34px;margin-bottom:12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--c0t);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">🗂 로컬 백업 관리</button>
       <div id="driveSignedOut">
-        <p class="phint" style="margin-top:0">구글 드라이브에 로그인하면 이 기기·다른 기기·모바일에서 같은 마인드맵/덱을 계속 이어서 볼 수 있어요. 카드 학습 진도도 파일에 같이 저장돼서 그대로 따라옵니다.</p>
+        <p class="phint" style="margin-top:0">이 앱은 기본적으로 로컬 파일로 작업하고, 구글 드라이브는 백업 전용으로만 씁니다. 자동으로 동기화되지 않고, "지금 백업"을 직접 눌렀을 때만 그 시점 내용이 드라이브에 올라갑니다(그때만 로그인 계정을 확인합니다).</p>
         <div id="driveHttpsWarn" class="phint" style="display:none;color:#c14a36">이 페이지가 https 주소로 열려 있지 않아 구글 로그인을 쓸 수 없습니다 — GitHub Pages 등으로 배포한 주소에서 열어주세요.</div>
         <button id="driveSignInBtn" style="width:100%;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer">구글 계정으로 로그인</button>
       </div>
@@ -1360,7 +1391,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <button id="driveSaveNew" style="width:100%;height:36px;margin-bottom:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;font-weight:600;cursor:pointer">＋ 지금 보는 내용을 드라이브에 새로 저장</button>
         <div id="driveSyncRow" style="display:none;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted)">
           <span id="driveSyncStatus" style="flex:1"></span>
-          <button id="driveSyncNow" class="mact">지금 동기화</button>
+          <button id="driveSyncNow" class="mact">지금 백업</button>
         </div>
         <div id="driveFileList"></div>
         <button id="driveSignOutBtn" style="margin-top:12px;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">로그아웃</button>
@@ -1389,13 +1420,26 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <div id="driveConflictModal" class="overlay hidden">
   <div class="card">
-    <header><span>동기화 방법을 골라주세요</span><button data-close>닫기</button></header>
+    <header><span>드라이브에 백업</span><button data-close>닫기</button></header>
     <div class="body">
-      <p class="phint" id="driveConflictHint" style="margin-top:0">지금 보는 내용과 드라이브 파일이 다릅니다 — 어떻게 할까요?</p>
+      <p class="phint" id="driveConflictHint" style="margin-top:0">지금 보는 내용을 드라이브에 백업할까요?</p>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button id="driveConflictOverwrite" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">⬆ 지금 보는 내용을 드라이브에 올리기(업로드)</button>
-        <button id="driveConflictReload" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">⬇ 드라이브의 내용을 가져오기(지금 화면 덮어씀)</button>
-        <button id="driveConflictSaveAs" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">다른 이름으로 따로 저장</button>
+        <button id="driveConflictOverwrite" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">📤 지금 내용을 드라이브에 백업</button>
+        <button id="driveConflictSaveAs" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">다른 이름의 새 백업으로 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="driveExitBackupModal" class="overlay hidden">
+  <div class="card">
+    <header><span>나가기 전에 백업할까요?</span></header>
+    <div class="body">
+      <p class="phint" id="driveExitBackupHint" style="margin-top:0">마지막 백업 이후 내용이 바뀌었어요.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button id="driveExitBackupYes" style="height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--c0t);font:inherit;font-size:13px;font-weight:700;cursor:pointer">📤 백업하고 나가기</button>
+        <button id="driveExitBackupNo" style="height:38px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--c0t);font:inherit;font-size:13px;cursor:pointer">백업 안 하고 나가기</button>
+        <button id="driveExitBackupCancel" style="height:38px;border-radius:10px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer">취소(계속 편집)</button>
       </div>
     </div>
   </div>
@@ -1460,10 +1504,14 @@ const driveAuth=(()=>{
           reject(new Error((resp&&resp.error)||"로그인이 취소되었습니다"));
         }
       };
-      /* silent(조용한 재인증)는 이전에 로그인한 적 있고 구글 세션이 아직 살아있을 때만
-         팝업 없이 성공한다 — 실패해도 사용자가 버튼을 눌러 다시 로그인하면 그만이므로
-         에러를 조용히 흘려보낸다. */
-      try{tokenClient.requestAccessToken({prompt:silent?"":"consent"});}catch(e){reject(e);}
+      /* silent(조용한 재인증)는 반드시 prompt:"none"으로 요청한다 — 빈 문자열("")은
+         "필요하면 구글이 알아서 로그인 화면을 띄워도 된다"는 뜻이라, 토큰이 만료됐거나
+         (이번처럼) 권한 범위가 넓어져 재동의가 필요한 상황에서 사용자가 한참 편집하던
+         중에 갑자기 구글 로그인 창이 튀어나올 수 있었다 — 실제로 이 문제로 작업 중이던
+         내용이 화면에서 밀려나는 사고가 있었다. "none"은 화면에 아무것도 띄우지 않고,
+         조용히 안 되면 그냥 실패로 끝난다(그러면 동기화만 실패 메시지로 안내하고,
+         로그인은 사용자가 버튼을 직접 눌렀을 때만 뜬다). */
+      try{tokenClient.requestAccessToken({prompt:silent?"none":"consent"});}catch(e){reject(e);}
     });
   }
   function everConnected(){try{return localStorage.getItem("mfDrive.connected")==="1";}catch(e){return false;}}
@@ -1474,7 +1522,17 @@ const driveAuth=(()=>{
   }
   async function getToken(){
     if(hasValidToken())return accessToken;
-    return signIn(true);
+    try{return await signIn(true);}
+    catch(e){
+      /* 조용한 재인증이 실패해서 사용자가 다시 로그인해야 하는 바로 이 순간, 800ms
+         디바운스를 기다리지 않고 지금 편집 중이던 마인드맵/플래시카드 내용을 즉시
+         한 번 더 저장해 둔다 — "로그인 다시 하기 전에 지금 상태부터 안전하게
+         남겨달라"는 요청에 따른 것. 이미 편집할 때마다 자동 저장되고 있지만, 이
+         순간에 한 번 더 확실히 찍어 둔다. */
+      try{if(typeof flushSessionNow==="function")flushSessionNow();}catch(e2){}
+      try{if(typeof flushFcSessionNow==="function")flushFcSessionNow();}catch(e2){}
+      throw new Error("다시 로그인이 필요합니다 — 상단 ☁ 버튼(또는 ⋮ 메뉴의 '구글 드라이브')을 눌러 로그인해주세요");
+    }
   }
   return {available,signIn,getToken,everConnected,disconnect,hasValidToken};
 })();
@@ -1674,7 +1732,10 @@ function idbSet(key,val){
   /* IndexedDB 쓰기가 (저장공간 부족·브라우저가 백그라운드 탭의 DB 연결을 끊는 경우 등으로)
      조용히 실패해도 편집 세션 스냅샷만은 사라지지 않도록, localStorage에도 같은 내용을
      함께 남긴다 — IndexedDB가 완전히 막혀 있어도 이 백업으로 복원할 수 있다. */
-  const backup=()=>{if(key==="session")try{localStorage.setItem("mf.sessionBackup",JSON.stringify(val));}catch(e){}};
+  const backup=()=>{
+    if(key==="session")try{localStorage.setItem("mf.sessionBackup",JSON.stringify(val));}catch(e){}
+    else if(key==="fcSession")try{localStorage.setItem("mf.fcSessionBackup",JSON.stringify(val));}catch(e){}
+  };
   return fontDB().then(db=>new Promise((res,rej)=>{const tx=db.transaction("kv","readwrite");tx.objectStore("kv").put(val,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);})).then(backup).catch(backup);
 }
 function idbGet(key){return fontDB().then(db=>new Promise((res,rej)=>{const rq=db.transaction("kv").objectStore("kv").get(key);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error);})).catch(()=>null);}
@@ -1701,8 +1762,12 @@ $("btnTheme").addEventListener("click",()=>{prefs.theme=prefs.theme==="dark"?"li
 $("btnFont").addEventListener("click",()=>{closeCtxMenu();$("fontModal").classList.remove("hidden");});
 $("btnPalette").addEventListener("click",()=>{closeCtxMenu();$("paletteModal").classList.remove("hidden");renderDepthUI();renderDepthPreview();});
 $("btnHome").addEventListener("click",()=>{
-  document.querySelectorAll(".overlay").forEach(o=>o.classList.add("hidden"));
-  if(tab==="reader")goHome();else fcGoHome();
+  const proceed=()=>{
+    document.querySelectorAll(".overlay").forEach(o=>o.classList.add("hidden"));
+    if(tab==="reader")goHome();else fcGoHome();
+  };
+  if(tab==="reader"){if(!model){proceed();return;}driveMaybeConfirmExit("map",proceed);}
+  else{if(!deck){proceed();return;}driveMaybeConfirmExit("cards",proceed);}
 });
 $("fsRange").addEventListener("input",()=>{prefs.fs=+$("fsRange").value;savePrefs();applyPrefs();});
 $("fontSeg").addEventListener("click",e=>{
@@ -3739,8 +3804,22 @@ function scheduleSession(){clearTimeout(sessionTimer);sessionTimer=setTimeout(pe
    마지막 편집분이 사라질 수 있었다. visibilitychange(hidden)와 pagehide 둘 다
    걸어서, 둘 중 먼저 오는 신호에서 즉시 저장한다. */
 function flushSessionNow(){if(model){clearTimeout(sessionTimer);persistSession();}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushSessionNow();});
-addEventListener("pagehide",flushSessionNow);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){flushSessionNow();flushFcSessionNow();}});
+addEventListener("pagehide",()=>{flushSessionNow();flushFcSessionNow();});
+/* 탭/브라우저를 완전히 닫으려 할 때 — 마지막 드라이브 백업 이후 내용이 바뀐 게
+   있으면 브라우저 자체의 "이 페이지를 나가시겠습니까?" 경고를 띄운다. 이 경고창은
+   브라우저가 직접 그리는 것이라 문구나 버튼("백업하기" 같은)을 우리가 마음대로
+   넣을 수는 없다(보안상 모든 브라우저가 막아 둠) — 그래도 실수로 탭을 닫아
+   백업 못 한 채로 나가는 걸 한 번은 막아준다. 편집 내용 자체는 이 경고와 별개로
+   이미 몇 초마다 이 기기에 자동 저장되고 있으니, 그래도 닫으면 다음에 열 때
+   그대로 복원된다. */
+addEventListener("beforeunload",e=>{
+  const dirty=driveIsDirtySinceBackup("map")||driveIsDirtySinceBackup("cards");
+  if(!dirty)return;
+  e.preventDefault();
+  e.returnValue="";
+  return "";
+});
 function restoreSession(){
   idbGet("session").then(sess=>{
     /* IndexedDB 쪽 세션이 비어있거나(디비 접근 자체가 막혔던 경우) localStorage 백업보다
@@ -4208,7 +4287,34 @@ function fcSnapshotNow(){
   if(fcUndoStack.length&&fcUndoStack[fcUndoStack.length-1]===j)return;
   fcUndoStack.push(j);if(fcUndoStack.length>60)fcUndoStack.shift();fcRedoStack=[];
 }
-function scheduleFcUndo(){clearTimeout(fcUndoTimer);fcUndoTimer=setTimeout(fcSnapshotNow,400);}
+function scheduleFcUndo(){clearTimeout(fcUndoTimer);fcUndoTimer=setTimeout(fcSnapshotNow,400);scheduleFcSession();}
+/* 마인드맵 쪽의 markDirty()/scheduleSession()/persistSession()/restoreSession()과 같은
+   구조를, 그동안 이 안전장치가 전혀 없었던 플래시카드 덱에도 그대로 만든다 — 편집
+   중 브라우저가 새로고침되거나(예: 구글 로그인 팝업·탭 정지·크래시) 저장을 깜빡해도,
+   최근 편집 내용을 IndexedDB(+localStorage 백업)에서 그대로 복원할 수 있게 한다. */
+let fcSessionTimer=null;
+function persistFcSession(){
+  if(!deck)return;
+  try{idbSet("fcSession",{name:titles.cards||deck.name||"제목 없음",ext:fcLastOpenExt||"json",content:fcToJSON(),ts:Date.now()});}catch(e){}
+}
+function scheduleFcSession(){clearTimeout(fcSessionTimer);fcSessionTimer=setTimeout(persistFcSession,800);}
+function flushFcSessionNow(){if(deck){clearTimeout(fcSessionTimer);persistFcSession();}}
+function restoreFcSession(){
+  idbGet("fcSession").then(sess=>{
+    let backup=null;
+    try{backup=JSON.parse(localStorage.getItem("mf.fcSessionBackup")||"null");}catch(e){}
+    if(backup&&backup.content&&(!sess||!sess.ts||backup.ts>sess.ts))sess=backup;
+    if(!sess||!sess.content)return;
+    try{
+      const cards=fcParseJSON(sess.content).map(c=>fcCard(c));
+      if(!cards.length)return;
+      deck={name:sess.name||"제목 없음",cards:cards};
+      fcLastOpenExt=sess.ext||"json";
+      navQuiet=true;
+      try{fcAfterLoad(false);}finally{navQuiet=false;}
+    }catch(e){}
+  });
+}
 function fcUndo(){
   if(tab!=="cards"||!deck)return;
   clearTimeout(fcUndoTimer);fcSnapshotNow();
@@ -5216,7 +5322,7 @@ $("menu").addEventListener("click",e=>{
   if(act==="expand"){walkAll(n=>{n.folded=false;});render();}
   if(act==="collapse"){collapseAll();render();window.scrollTo(0,0);}
   if(act==="pick-deck")openPickModal();
-  if(act==="home")goHome();
+  if(act==="home")goHomeGuarded();
   if(act==="to-deck")openDepthModal();
   if(act==="notes"){
     showNotes=!showNotes;
@@ -6341,7 +6447,7 @@ function driveUpdateSyncRow(){
   const link=driveLinkedFor(driveKind);
   if(link&&link.fileId){
     $("driveSyncRow").style.display="flex";
-    $("driveSyncStatus").textContent=link.name+"에 연결됨"+(link.lastSyncTs?" · "+driveRelTime(link.lastSyncTs):"");
+    $("driveSyncStatus").textContent=link.name+" 백업됨"+(link.lastSyncTs?" · 마지막 백업 "+driveRelTime(link.lastSyncTs):"");
     $("driveSyncStatus").style.color="";
     $("driveSaveNew").textContent="＋ 다른 파일로 새로 저장";
   }else{
@@ -6371,20 +6477,20 @@ function driveUpdateHeaderBtn(){
     return;
   }
   if(!driveAuth.everConnected()){
-    btn.title="구글 드라이브에 연결 안 됨 — 눌러서 로그인하고 지금 보는 내용을 저장";
+    btn.title="구글 드라이브 백업 — 아직 연결 안 됨(눌러서 로그인 확인하고 지금 보는 내용을 백업)";
     return;
   }
   const kind=driveHeaderKind();
   const link=driveLinkedFor(kind);
   if(!link||!link.fileId){
-    btn.title="구글 드라이브에 연결 안 됨 — 눌러서 지금 보는 내용을 드라이브에 저장";
+    btn.title="구글 드라이브 백업 — 이 문서는 아직 백업 파일이 없음(눌러서 지금 보는 내용을 새 백업으로 저장)";
     return;
   }
   let content=null;
   try{content=driveCurrentContent(kind);}catch(e){}
   const dirty=content!=null&&content!==link.lastSyncedContent;
   if(dirty)btn.classList.add("hdrDriveDirty");
-  btn.title=link.name+"에 연결됨"+(link.lastSyncTs?" · "+driveRelTime(link.lastSyncTs):"")+(dirty?" · 저장 안 된 변경사항 있음 — 눌러서 동기화 방법 선택":" · 눌러서 동기화 방법 선택");
+  btn.title="드라이브 백업: "+link.name+(link.lastSyncTs?" · 마지막 백업 "+driveRelTime(link.lastSyncTs):"")+(dirty?" · 백업 안 된 변경사항 있음 — 눌러서 백업":" · 최신 상태로 백업됨 — 눌러서 다시 백업");
 }
 $("btnDriveSync").addEventListener("click",async()=>{
   const btn=$("btnDriveSync");
@@ -6447,7 +6553,7 @@ async function driveApplyDownloaded(text,f,folderId){
   driveSaveLocalBackup(driveKind,text,"pull");
   $("driveModal").classList.add("hidden");
   driveUpdateSyncRow();
-  toast(nm+" 을(를) 열었습니다 — 앞으로 '지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
+  toast(nm+" 을(를) 열었습니다 — 앞으로 ☁ 버튼으로 이 파일을 드라이브에 백업할 수 있어요");
 }
 /* 다른 기기가 그 사이 드라이브에 올린 최신 내용을, 지금 화면이 그대로(수정한 부분
    없이) 보고 있을 때 "조용히" 반영한다 — openContent()/fcOpenFile()과 달리 홈 화면
@@ -6578,6 +6684,38 @@ $("driveSaveNew").addEventListener("click",driveSaveNew);
    올리기·받아오기가 실제로 성공할 때마다 driveSaveLocalBackup()으로 그 시점
    내용을 드라이브와 별개로 이 기기에 남긴다(아래 "로컬 백업" 절 참고) —
    드라이브 쪽에 무슨 일이 생겨도 여기서 예전 시점을 확인하고 되돌릴 수 있다. */
+/* "로컬 파일로 작업하고, 구글 드라이브는 백업 전용" 컨셉으로 다시 설계함:
+   - 더 이상 원격(드라이브) 쪽 변경을 감지해서 자동으로 뭔가 하지 않는다. 방향은
+     항상 "지금 화면 → 드라이브"로 고정된 한 방향 백업이다(예전의 받아오기/충돌
+     비교는 없앴다 — 드라이브의 예전 백업을 다시 보고 싶으면 ⋮ 메뉴의 파일 목록에서
+     직접 "열기"로 불러온다, 자동으로 덮어써지지 않는다).
+   - 로그인 확인은 오직 "지금 백업"을 눌렀을 때만 일어난다(driveEnsureTokenInteractive).
+   - 실제로 올리기 전에 반드시 계정 이메일을 보여주는 확인 팝업(driveConflictModal)을
+     거친다 — 토스트 문구가 아니라 진짜 모달이라 실수로 지나치지 않는다. */
+async function driveGetAccountEmail(){
+  try{
+    const res=await driveApiFetch(DRIVE_API+"/about?fields=user");
+    const j=await res.json();
+    return (j.user&&(j.user.emailAddress||j.user.displayName))||"";
+  }catch(e){return "";}
+}
+async function driveEnsureTokenInteractive(){
+  try{await driveAuth.getToken();return true;}
+  catch(e){
+    try{await driveAuth.signIn(false);return true;}
+    catch(e2){toast("로그인하지 못했습니다 — "+e2.message);return false;}
+  }
+}
+async function driveDoBackupUpload(kind,link,content){
+  const res=await driveUpdateFile(link.fileId,content,null,driveCurrentMime(kind));
+  link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
+  driveSetLinked(kind,link);
+  const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
+  if(kind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
+  else saveFcRecent(deck.name,content,"json",meta);
+  driveSaveLocalBackup(kind,content,"push");
+  driveUpdateHeaderBtn();
+}
 async function driveSyncKind(kind){
   const link=driveLinkValidForCurrent(kind);
   if(!link||!link.fileId){await driveSaveNew();return;}
@@ -6585,31 +6723,16 @@ async function driveSyncKind(kind){
   if(kind==="cards"&&!deck)return;
   let content;
   try{content=driveCurrentContent(kind);}catch(e){return;}
-  const localChanged=content!==link.lastSyncedContent;
-  let remoteMeta;
-  try{remoteMeta=await driveGetFileMeta(link.fileId);}
-  catch(e){toast("동기화하지 못했습니다 — "+e.message);return;}
-  const remoteChanged=remoteMeta.modifiedTime!==link.modifiedTime;
-  if(!localChanged&&!remoteChanged){
-    toast("이미 최신 상태입니다");
-    return;
-  }
-  /* 예전에는 한쪽만 바뀌었으면 묻지 않고 곧바로 자동으로 올리거나(push) 받아왔는데
-     (remoteChanged만 있으면 조용히 pull, localChanged만 있으면 조용히 push), "실수로
-     버튼을 눌러도 이상한 일이 생기지 않게 완전 수동으로, 방향도 내가 직접 고르게"
-     해달라는 요청에 따라 — 이제는 둘 중 하나라도 바뀌었으면(둘 다 바뀐 진짜 충돌이든,
-     한쪽만 바뀐 경우든) 예외 없이 이 대화상자를 띄우고, 사용자가 업로드/다운로드/
-     다른 이름 저장 중 하나를 직접 누르기 전에는 아무것도 실행하지 않는다. */
+  if(content===link.lastSyncedContent){toast("이미 최신 상태로 백업되어 있습니다");return;}
+  if(!(await driveEnsureTokenInteractive()))return;
+  let email="";try{email=await driveGetAccountEmail();}catch(e){}
   driveKind=kind;
-  drivePendingSync={link:link,content:content,remoteMeta:remoteMeta};
-  $("driveConflictHint").textContent=
-    (localChanged&&remoteChanged)?"다른 기기(또는 드라이브에서 직접)에서 이 파일이 그 사이 바뀐 것 같아요 — 어느 쪽 내용으로 할까요?":
-    localChanged?"지금 보는 내용이 마지막 동기화 이후 바뀌었어요 — 드라이브에 올릴까요?":
-    "드라이브 쪽 파일이 그 사이 바뀐 것 같아요(다른 기기에서 저장했거나 드라이브에서 직접 수정) — 지금 화면으로 가져올까요?";
+  drivePendingSync={link:link,content:content};
+  $("driveConflictHint").textContent=(email?email+" 계정으로 ":"")+'지금 보는 내용을 드라이브("'+link.name+'")에 백업할까요?';
   $("driveConflictModal").classList.remove("hidden");
 }
 async function driveSyncNow(){
-  $("driveSyncNow").disabled=true;$("driveSyncStatus").textContent="동기화 중…";
+  $("driveSyncNow").disabled=true;$("driveSyncStatus").textContent="백업 확인 중…";
   try{await driveSyncKind(driveKind);}
   finally{$("driveSyncNow").disabled=false;driveUpdateSyncRow();}
 }
@@ -6650,26 +6773,10 @@ $("driveConflictOverwrite").addEventListener("click",async()=>{
   const{link,content}=drivePendingSync;
   $("driveConflictModal").classList.add("hidden");
   try{
-    const res=await driveUpdateFile(link.fileId,content,null,driveCurrentMime(driveKind));
-    link.modifiedTime=res.modifiedTime;link.lastSyncTs=Date.now();link.lastSyncedContent=content;link.autoSyncBlocked=false;
-    const meta={method:"drive",driveFileId:link.fileId,driveModifiedTime:res.modifiedTime,driveFolderId:link.folderId};
-    if(driveKind==="map")saveRecent(titles.reader||lastOpenName||"제목 없음",content,driveCurrentExt("map"),meta);
-    else saveFcRecent(deck.name,content,"json",meta);
-    driveSaveLocalBackup(driveKind,content,"push");
+    await driveDoBackupUpload(driveKind,link,content);
     driveUpdateSyncRow();
-    toast("지금 보는 내용으로 덮어썼습니다");
-  }catch(e){toast("덮어쓰지 못했습니다 — "+e.message);}
-  drivePendingSync=null;
-});
-$("driveConflictReload").addEventListener("click",async()=>{
-  if(!drivePendingSync)return;
-  const{link,remoteMeta}=drivePendingSync;
-  $("driveConflictModal").classList.add("hidden");
-  try{
-    const text=await driveDownload(link.fileId);
-    await driveApplyDownloaded(text,{id:link.fileId,name:(remoteMeta&&remoteMeta.name)||link.name,modifiedTime:(remoteMeta&&remoteMeta.modifiedTime)||link.modifiedTime},link.folderId);
-    toast("드라이브의 최신 내용을 불러왔습니다");
-  }catch(e){toast("최신 내용을 불러오지 못했습니다 — "+e.message);}
+    toast("드라이브에 백업했습니다");
+  }catch(e){toast("백업하지 못했습니다 — "+e.message);}
   drivePendingSync=null;
 });
 $("driveConflictSaveAs").addEventListener("click",async()=>{
@@ -6678,6 +6785,61 @@ $("driveConflictSaveAs").addEventListener("click",async()=>{
   drivePendingSync=null;
   driveSetLinked(driveKind,null);
   await driveSaveNew();
+});
+/* ══════════════ "나가기 전에 백업할까요?" 확인 팝업 ══════════════
+   메시지창(토스트)은 잠깐 뜨고 사라져서 읽기 전에 놓치기 쉽다는 지적에 따라,
+   반드시 눌러서 닫아야 하는 진짜 팝업(모달)으로 만든다. 지금 보고 있는 문서가
+   마지막 드라이브 백업 이후로 바뀌었는데 "첫 화면으로" 나가려고 할 때만 뜬다. */
+function driveIsDirtySinceBackup(kind){
+  const link=driveLinkedFor(kind);
+  if(!link||!link.fileId)return false;
+  let content=null;
+  try{content=driveCurrentContent(kind);}catch(e){return false;}
+  return content!=null&&content!==link.lastSyncedContent;
+}
+let driveExitPending=null;
+async function driveMaybeConfirmExit(kind,proceedFn){
+  if(!driveIsDirtySinceBackup(kind)){proceedFn();return;}
+  driveExitPending={kind:kind,proceedFn:proceedFn};
+  let email="";
+  try{if(driveAuth.hasValidToken())email=await driveGetAccountEmail();}catch(e){}
+  const link=driveLinkedFor(kind);
+  $("driveExitBackupHint").textContent="마지막 백업 이후 내용이 바뀌었어요"+(link&&link.name?' — "'+link.name+'"':"")+(email?"("+email+" 계정)":"")+". 나가기 전에 드라이브에 백업할까요?";
+  $("driveExitBackupModal").classList.remove("hidden");
+}
+function goHomeGuarded(){
+  if(tab!=="reader"||!model){goHome();return;}
+  driveMaybeConfirmExit("map",goHome);
+}
+function fcGoHomeGuarded(){
+  if(tab!=="cards"||!deck){fcGoHome();return;}
+  driveMaybeConfirmExit("cards",fcGoHome);
+}
+$("driveExitBackupYes").addEventListener("click",async()=>{
+  const p=driveExitPending;driveExitPending=null;
+  $("driveExitBackupYes").disabled=true;
+  const kind=p&&p.kind;
+  const link=kind&&driveLinkedFor(kind);
+  let ok=false;
+  if(link&&link.fileId){
+    let content=null;try{content=driveCurrentContent(kind);}catch(e){}
+    if(content!=null&&(await driveEnsureTokenInteractive())){
+      try{await driveDoBackupUpload(kind,link,content);ok=true;toast("드라이브에 백업했습니다");}
+      catch(e){toast("백업하지 못했습니다 — "+e.message);}
+    }
+  }
+  $("driveExitBackupYes").disabled=false;
+  $("driveExitBackupModal").classList.add("hidden");
+  if(p)p.proceedFn();
+});
+$("driveExitBackupNo").addEventListener("click",()=>{
+  const p=driveExitPending;driveExitPending=null;
+  $("driveExitBackupModal").classList.add("hidden");
+  if(p)p.proceedFn();
+});
+$("driveExitBackupCancel").addEventListener("click",()=>{
+  driveExitPending=null;
+  $("driveExitBackupModal").classList.add("hidden");
 });
 /* ══════════════ 로컬 백업(구글 드라이브와 별개) ══════════════
    동기화(올리기/받아오기)가 성공할 때마다 그 시점 내용을 드라이브와 별개로
@@ -7254,7 +7416,7 @@ $("fcMenu").addEventListener("click",e=>{
 
   if(act==="fc-view-list"){fcView="list";fcRender();}
   if(act==="fc-view-study"){fcView="study";fcRender();}
-  if(act==="fc-home")fcGoHome();
+  if(act==="fc-home")fcGoHomeGuarded();
   if(act.startsWith("fc-exp-")){
     if(!deck||!deck.cards.length){toast("내보낼 덱이 없습니다");return;}
     const fmt=act.slice(7);
@@ -7271,6 +7433,7 @@ $("fcMenu").addEventListener("click",e=>{
 applyPrefs();
 restoreFontFile();
 restoreSession();
+restoreFcSession();
 renderRecents();
 renderFcRecents();
 
@@ -7451,7 +7614,7 @@ async function driveTreeOpenFile(kind,node){
   if(kind==="map")openContent(text,nm,ext,meta);
   else fcOpenFile(text,nm,ext,meta);
   driveSetLinked(kind,{fileId:node.id,modifiedTime:node.modifiedTime,folderId:node.parent,name:nm,lastSyncTs:Date.now(),lastSyncedContent:driveCurrentContent(kind)});
-  toast(nm+" 을(를) 열었습니다 — 앞으로 ⋮ 메뉴의 '구글 드라이브 › 지금 동기화'로 이 파일에 이어서 저장할 수 있어요");
+  toast(nm+" 을(를) 열었습니다 — 앞으로 ☁ 버튼(또는 ⋮ 메뉴의 '구글 드라이브')으로 이 파일을 드라이브에 백업할 수 있어요");
 }
 /* 폴더 이동(드래그앤드롭) — 지금 드래그 중인 항목을 여기에 담아 둔다. 드롭 시점에
    같은 kind의 폴더 행 위인지 확인해서, 다른 kind(마인드맵↔플래시카드) 트리로는
@@ -7590,14 +7753,7 @@ function bindDriveInline(kind){
       return;
     }
     const sortToggleBtn=e.target.closest(".driveInlineSort");
-    if(sortToggleBtn){
-      driveSetSortMode(driveSortMode()==="name"?"modified":"name");
-      driveInlineUpdateSortBtnLabel();
-      driveTreeResortAll("map");driveTreeResortAll("cards");
-      driveTreeRender("map");driveTreeRender("cards");
-      toast("정렬: "+(driveSortMode()==="name"?"이름순":"최근 수정순"));
-      return;
-    }
+    if(sortToggleBtn){toggleSortModeEverywhere();return;}
     const topNewBtn=e.target.closest(".driveInlineNewFolder");
     if(topNewBtn){
       const root=driveTree[kind];
@@ -7711,36 +7867,456 @@ async function driveGateLogin(kind){
   if(btn){btn.disabled=false;btn.textContent="구글 계정으로 로그인";}
 }
 async function driveInlineBoot(){
-  /* accounts.google.com/gsi/client 스크립트는 async로 불러오므로, 페이지를 막
+  /* "로컬 파일로 작업하고, 드라이브는 백업 용도로만" 쓰는 컨셉으로 바뀌면서, 앱을
+     열 때마다 뒤에서 조용히 구글 계정을 다시 확인/재연결하던 동작을 완전히
+     없앴다 — 예전에 로그인한 적이 있어도 여기서 자동으로 다시 로그인을 시도하지
+     않는다. 구글 계정 확인은 오직 "지금 백업하기"를 실제로 눌렀을 때만 일어난다.
+     accounts.google.com/gsi/client 스크립트는 async로 불러오므로, 페이지를 막
      열었을 때는 아직 window.google이 없을 수 있다 — 그 찰나에 available()을 한
      번만 확인하면 https로 정상 접속했는데도 "https 주소로 열어야" 경고가 잘못
-     뜬다. 최대 3초간 짧게 재확인해서 스크립트가 늦게 뜨는 경우를 흡수한다. */
+     뜬다. 최대 3초간 짧게 재확인해서 스크립트가 늦게 뜨는 경우만 흡수한다. */
   for(let i=0;i<30&&!driveAuth.available();i++)await new Promise(r=>setTimeout(r,100));
   if(!driveAuth.available()){
     const wm=$("driveGateWarnMap"),wc=$("driveGateWarnCards");
     if(wm)wm.hidden=false;
     if(wc)wc.hidden=false;
-    return;
-  }
-  if(!driveAuth.everConnected())return;
-  /* 예전에 로그인한 적이 있는데 이 조용한 재인증이 실패하면, 화면에는 "구글
-     드라이브에 로그인하면…" 안내 박스(⋮ 메뉴가 아니라 첫 화면에 뜨는 것)가 그대로
-     남아, 사용자가 이를 "구글 로그인 화면이 떴다"로 느끼게 된다. 실제로는 대부분
-     구글 쪽의 일시적인 응답 지연·타이밍 문제일 뿐이라, 한 번 더 짧게 재시도해서
-     이런 경우를 최대한 조용히 넘긴다. 그래도 안 되면(계정 세션 자체가 끊긴 경우)
-     기존처럼 조용히 흘려보내고 로그인 버튼을 그대로 남긴다 — 최근 파일 목록은
-     이 박스 안에도 그대로 보이므로 로컬로 이어서 작업하는 데는 문제가 없다. */
-  for(let attempt=0;attempt<2;attempt++){
-    try{
-      await driveAuth.signIn(true);
-      driveInlineConnected=true;
-      await driveInlineShowFor(tab==="cards"?"cards":"map");
-      return;
-    }catch(e){
-      if(attempt===0)await new Promise(r=>setTimeout(r,1500));
-    }
   }
 }
+function toggleSortModeEverywhere(){
+  driveSetSortMode(driveSortMode()==="name"?"modified":"name");
+  driveInlineUpdateSortBtnLabel();
+  driveTreeResortAll("map");driveTreeResortAll("cards");
+  driveTreeRender("map");driveTreeRender("cards");
+  if(localTree.map)localTreeResortAll("map");
+  if(localTree.cards)localTreeResortAll("cards");
+  localTreeRender("map");localTreeRender("cards");
+  toast("정렬: "+(driveSortMode()==="name"?"이름순":"최근 수정순"));
+}
+
+/* ══════════════════════ 로컬 폴더 연결(항상 열어보기) ══════════════════════
+   구글 드라이브 트리 탐색기와 완전히 같은 모양으로, 사용자가 지정한 로컬 폴더
+   하나를 그대로 파일 탐색기처럼 보여준다(File System Access API). 지원 브라우저는
+   PC용 크롬·엣지뿐이고 모바일은 지원하지 않는다(localSupported()가 false면 연결
+   버튼 자체를 숨긴다 — 안 되는 걸 눌러보게 하지 않는다).
+
+   핵심 아이디어: 이 폴더에서 연 파일은 기존의 "로컬 파일 열기"(showOpenFilePicker로
+   얻는 fileHandle/fcFileHandle)와 완전히 같은 전역 변수에 그대로 꽂아 넣는다. 그러면
+   지도 쪽 자동저장(markDirty→autoSaveMap)·세션 복원(restoreSession의 idbGet("fhandle"))·
+   수동 저장(⋮ 메뉴의 "파일에 저장") 같은 이미 만들어져 있고 테스트된 저장 경로를 전부
+   그대로 재사용하게 되어, 이 기능만을 위한 별도의 저장 로직이 필요 없다. 폴더를 한 번
+   readwrite로 연결하면 그 안의 모든 파일·하위폴더에 대한 쓰기 권한도 함께 부여되므로
+   (File System Access API의 동작), 그 안에서 파일을 열고 저장할 때마다 추가로 권한을
+   묻지 않는다.
+
+   "폴더 안 폴더 이름 바꾸기"는 지원하지 않는다 — 실제 사용자의 진짜 폴더이므로
+   탐색기(윈도우 탐색기 등)에서 직접 바꾸고 "↻ 새로고침"을 누르는 편이 더 안전하고
+   자연스럽다. 파일 이름 바꾸기·삭제는 지원한다. */
+let localFolderHandle=null;
+let localTree={map:null,cards:null};
+let localNodeSeq=1;
+let localConnected=false;
+let localImportTarget=null;
+function localSupported(){return !!window.showDirectoryPicker;}
+function localFolderKey(){return "localWorkHandle";}
+async function localGetFolderHandle(){try{return await idbGet(localFolderKey());}catch(e){return null;}}
+async function localFolderPermitted(handle){
+  if(!handle)return false;
+  try{return (await handle.queryPermission({mode:"readwrite"}))==="granted";}catch(e){return false;}
+}
+function localNodeById(kind,id){
+  const root=localTree[kind];
+  if(!root)return null;
+  function walk(n){
+    if(n.id===id)return n;
+    if(n.children)for(const c of n.children){const r=walk(c);if(r)return r;}
+    return null;
+  }
+  return walk(root);
+}
+function localTreeResortAll(kind){
+  const root=localTree[kind];
+  if(!root)return;
+  (function walk(n){
+    if(n.type==="folder"&&n.children&&n.children.length){
+      driveSortNode(n);
+      n.children.forEach(walk);
+    }
+  })(root);
+}
+/* 새로고침해도 이미 펼쳐 둔 하위 폴더의 펼침 상태가 사라지지 않도록, 이름+종류가
+   같은 항목이 예전에도 있었으면 그 expanded/loaded/children을 이어받는다(로컬
+   파일에는 드라이브 같은 안정적인 id가 없어 이름으로 짝짓는다 — 그 사이 이름이
+   바뀐 항목은 새 항목 취급되어 펼침 상태가 초기화될 수 있다). */
+async function localLoadChildren(kind,node){
+  const oldByKey={};
+  (node.children||[]).forEach(c=>{oldByKey[c.type+"/"+c.name]=c;});
+  const folders=[],files=[];
+  for await(const [name,h] of node.handle.entries()){
+    if(/^[.~$]/.test(name))continue;
+    if(h.kind==="directory"){
+      const old=oldByKey["folder/"+name];
+      folders.push({id:old?old.id:("l"+(localNodeSeq++)),name,type:"folder",handle:h,parent:node.id,
+        expanded:old?old.expanded:false,loaded:old?old.loaded:false,children:old?old.children:[]});
+    }else{
+      if(!/\.(mm|xml|opml|md|markdown|txt|csv|json)$/i.test(name))continue;
+      let mtimeIso=null;
+      try{const f=await h.getFile();mtimeIso=new Date(f.lastModified).toISOString();}catch(e){}
+      const old=oldByKey["file/"+name];
+      files.push({id:old?old.id:("lf"+(localNodeSeq++)),name,type:"file",handle:h,parent:node.id,modifiedTime:mtimeIso});
+    }
+  }
+  node.children=[...driveSortList(folders),...driveSortList(files)];
+  node.loaded=true;
+}
+function localTreeRender(kind){
+  const wrap=$(kind==="map"?"localInlineMap":"localInlineCards");
+  if(!wrap)return;
+  const treeEl=wrap.querySelector(".driveTree");
+  const root=localTree[kind];
+  if(!root){treeEl.innerHTML="";return;}
+  if(!root.loaded){treeEl.innerHTML='<div style="padding:10px 4px;color:var(--muted);font-size:12px">불러오는 중…</div>';return;}
+  if(!root.children.length){treeEl.innerHTML='<div style="padding:10px 4px;color:var(--muted);font-size:12px">이 폴더가 비어 있습니다 — "＋새 폴더"·"📝 새 파일"로 시작하거나, 탐색기에서 이 폴더에 파일을 직접 넣고 "↻ 새로고침"을 눌러보세요</div>';return;}
+  treeEl.innerHTML=root.children.map(c=>driveTreeRenderNode(kind,c,0)).join("");
+}
+async function localTreeToggle(kind,id){
+  const node=localNodeById(kind,id);
+  if(!node||node.type!=="folder")return;
+  node.expanded=!node.expanded;
+  localTreeRender(kind);
+  if(node.expanded&&!node.loaded){
+    try{await localLoadChildren(kind,node);}
+    catch(e){toast("폴더를 불러오지 못했습니다 — "+e.message);node.expanded=false;}
+    localTreeRender(kind);
+  }
+}
+async function localTreeRefreshAll(kind){
+  const root=localTree[kind];
+  if(!root)return;
+  await localLoadChildren(kind,root);
+  async function walk(node){
+    if(node.type!=="folder")return;
+    if(node.expanded){try{await localLoadChildren(kind,node);}catch(e){}}
+    if(node.children)for(const c of node.children)await walk(c);
+  }
+  for(const c of root.children)await walk(c);
+  localTreeRender(kind);
+}
+async function localTreeNewFolder(kind,parentId){
+  const v=prompt("새 폴더 이름");
+  if(!v||!v.trim())return;
+  const name=v.trim();
+  const parentNode=localNodeById(kind,parentId);
+  if(!parentNode)return;
+  try{
+    await parentNode.handle.getDirectoryHandle(name,{create:true});
+    parentNode.expanded=true;
+    await localLoadChildren(kind,parentNode);
+    localTreeRender(kind);
+    toast("'"+name+"' 폴더를 만들었습니다");
+  }catch(e){toast("폴더를 만들지 못했습니다 — "+e.message);}
+}
+async function localTreeNewFile(kind,parentId){
+  const v=prompt("새 파일 이름",kind==="map"?"새 맵":"새 덱");
+  if(!v||!v.trim())return;
+  const nameIn=v.trim();
+  const ext=kind==="map"?"mm":"json";
+  const fname=/\.[a-z0-9]+$/i.test(nameIn)?nameIn:(nameIn+"."+ext);
+  const content=kind==="map"?'<map version="1.0.1"><node TEXT="중심 주제"/></map>':fcBlankDeckJSON();
+  const parentNode=localNodeById(kind,parentId);
+  if(!parentNode)return;
+  try{
+    const fh=await parentNode.handle.getFileHandle(fname,{create:true});
+    const wr=await fh.createWritable();
+    await wr.write(content);
+    await wr.close();
+    await localLoadChildren(kind,parentNode);
+    parentNode.expanded=true;
+    localTreeRender(kind);
+    const nm=baseNoExt(fname);
+    if(kind==="map"){
+      openContent(content,nm,ext,{method:"local"});
+      fileHandle=fh;
+      try{idbSet("fhandle",fileHandle);}catch(e){}
+      openEdit(model);
+    }else{
+      fcFileHandle=fh;fcLastOpenExt=ext;
+      deck={name:nm,cards:[fcCard({q:"",a:"",done:false})]};
+      fcAfterLoad(false);
+      saveFcRecent(nm,content,ext,{method:"local"});
+      fcOpenCard(0);
+    }
+    toast("'"+fname+"' 파일을 만들어 열었습니다 — 이 폴더에 바로 저장됩니다");
+  }catch(e){toast("파일을 만들지 못했습니다 — "+e.message);}
+}
+async function localTreeOpenFile(kind,node){
+  const file=await node.handle.getFile();
+  const text=await file.text();
+  const ext=extOf(node.name,kind==="map"?"mm":"json");
+  const nm=baseNoExt(node.name);
+  if(kind==="map"){
+    openContent(text,nm,ext,{method:"local",size:file.size,mtime:file.lastModified});
+    fileHandle=node.handle;
+    try{idbSet("fhandle",fileHandle);}catch(e){}
+  }else{
+    fcOpenFile(text,nm,ext,{method:"local",size:file.size,mtime:file.lastModified});
+    fcFileHandle=node.handle;
+  }
+  toast(nm+" 을(를) 열었습니다 — 이 폴더의 파일에 바로 저장됩니다");
+}
+function localTreeImportInto(kind,parentId){
+  localImportTarget={kind,parentId};
+  $("localImportInput").accept=kind==="cards"?".csv,.tsv,.tab,.txt,.md,.markdown,.json":".mm,.xml,.opml,.md,.markdown,.txt,.csv";
+  $("localImportInput").click();
+}
+function localRowMenu(kind,type,id,name,e){
+  const m=ctxEl();m.innerHTML="";m.style.maxHeight="";m.style.overflowY="";
+  if(type==="folder"){
+    const b0=document.createElement("button");
+    b0.className="mitem";b0.textContent="✏️ 이름 바꾸기(탐색기에서)";
+    b0.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();toast("폴더 이름은 실제 파일 탐색기(윈도우 탐색기 등)에서 바꿔주세요 — 바꾼 뒤 '↻ 새로고침'을 누르면 여기에도 반영돼요");});
+    m.appendChild(b0);
+  }else{
+    const b1=document.createElement("button");
+    b1.className="mitem";b1.textContent="✏️ 이름 바꾸기";
+    b1.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();localTreeRename(kind,type,id,name);});
+    m.appendChild(b1);
+  }
+  const b2=document.createElement("button");
+  b2.className="mitem danger";b2.textContent="🗑️ 삭제";
+  b2.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();localTreeDelete(kind,type,id,name);});
+  m.appendChild(b2);
+  placeMenu(m,e);
+}
+async function localTreeRename(kind,type,id,oldName){
+  const node=localNodeById(kind,id);
+  if(!node)return;
+  const v=prompt("파일 이름 바꾸기",oldName);
+  if(!v||!v.trim()||v.trim()===oldName)return;
+  let newName=v.trim();
+  if(!/\.[a-z0-9]+$/i.test(newName)){
+    const oldExt=extOf(oldName,"");
+    if(oldExt)newName+="."+oldExt;
+  }
+  const parentNode=localNodeById(kind,node.parent);
+  if(!parentNode)return;
+  try{
+    const file=await node.handle.getFile();
+    const content=await file.text();
+    const newHandle=await parentNode.handle.getFileHandle(newName,{create:true});
+    const wr=await newHandle.createWritable();
+    await wr.write(content);
+    await wr.close();
+    await parentNode.handle.removeEntry(oldName);
+    await localLoadChildren(kind,parentNode);
+    localTreeRender(kind);
+    if(kind==="map"&&fileHandle){
+      let same=false;try{same=await fileHandle.isSameEntry(node.handle);}catch(e){}
+      if(same){
+        fileHandle=newHandle;
+        const nm=baseNoExt(newName);
+        lastOpenName=nm;titles.reader=nm;$("fileName").textContent=nm;lastOpenExt=extOf(newName,lastOpenExt||"mm");
+        try{idbSet("fhandle",fileHandle);}catch(e){}
+      }
+    }else if(kind==="cards"&&fcFileHandle){
+      let same=false;try{same=await fcFileHandle.isSameEntry(node.handle);}catch(e){}
+      if(same){
+        fcFileHandle=newHandle;
+        const nm=baseNoExt(newName);
+        if(deck)deck.name=nm;titles.cards=nm;if(tab==="cards")$("fileName").textContent=nm;
+        fcLastOpenExt=extOf(newName,fcLastOpenExt||"json");
+      }
+    }
+    toast("이름을 바꿨습니다");
+  }catch(e){toast("이름을 바꾸지 못했습니다 — "+e.message);}
+}
+async function localTreeDelete(kind,type,id,name){
+  const node=localNodeById(kind,id);
+  if(!node)return;
+  const msg=type==="folder"
+    ?"'"+name+"' 폴더를 삭제할까요? 안의 파일도 함께 지워지고, 되돌릴 수 없습니다."
+    :"'"+name+"'을(를) 삭제할까요? 되돌릴 수 없습니다.";
+  if(!confirm(msg))return;
+  const parentNode=localNodeById(kind,node.parent);
+  if(!parentNode)return;
+  try{
+    await parentNode.handle.removeEntry(name,{recursive:type==="folder"});
+    await localLoadChildren(kind,parentNode);
+    localTreeRender(kind);
+    if(type==="file"){
+      if(kind==="map"&&fileHandle){
+        let same=false;try{same=await fileHandle.isSameEntry(node.handle);}catch(e){}
+        if(same){fileHandle=null;toast("지금 보던 파일이 삭제됐습니다 — 계속 편집한 내용은 '다른 이름으로 저장'으로 저장할 수 있어요");return;}
+      }
+      if(kind==="cards"&&fcFileHandle){
+        let same=false;try{same=await fcFileHandle.isSameEntry(node.handle);}catch(e){}
+        if(same){fcFileHandle=null;toast("지금 보던 덱이 삭제됐습니다 — 계속 편집한 내용은 '다른 이름으로 저장'으로 저장할 수 있어요");return;}
+      }
+    }
+    toast("삭제했습니다");
+  }catch(e){toast("삭제하지 못했습니다 — "+e.message);}
+}
+function localUpdateGateVisibility(){
+  ["map","cards"].forEach(kind=>{
+    const gate=$(kind==="map"?"driveGateMap":"driveGateCards");
+    if(gate)gate.hidden=driveInlineConnected||localConnected;
+  });
+}
+async function localShowFor(kind){
+  const inline=$(kind==="map"?"localInlineMap":"localInlineCards");
+  if(inline)inline.hidden=false;
+  localUpdateGateVisibility();
+  if(!localTree[kind]){
+    localTree[kind]={id:"root",name:localFolderHandle.name,type:"folder",handle:localFolderHandle,loaded:false,children:[]};
+  }
+  const nameEl=$(kind==="map"?"localFolderNameMap":"localFolderNameCards");
+  if(nameEl)nameEl.textContent=localFolderHandle.name;
+  if(!localTree[kind].loaded)await localLoadChildren(kind,localTree[kind]);
+  localTreeRender(kind);
+}
+async function localConnectFolder(){
+  if(!localSupported()){toast("이 브라우저는 로컬 폴더 연결을 지원하지 않아요 — PC용 크롬·엣지에서만 가능합니다");return;}
+  try{
+    const handle=await window.showDirectoryPicker({id:"mf-local-work",mode:"readwrite"});
+    await idbSet(localFolderKey(),handle);
+    localFolderHandle=handle;
+    localConnected=true;
+    localTree={map:null,cards:null};
+    await localShowFor("map");
+    await localShowFor("cards");
+    toast("'"+handle.name+"' 폴더를 연결했습니다 — 이제 여기서 바로 열고 저장할 수 있어요");
+  }catch(e){if(e&&e.name!=="AbortError")toast("폴더를 연결하지 못했습니다 — "+e.message);}
+}
+async function localReconnectPermission(handle){
+  try{
+    const perm=await handle.requestPermission({mode:"readwrite"});
+    if(perm==="granted"){
+      localFolderHandle=handle;localConnected=true;
+      localTree={map:null,cards:null};
+      await localShowFor("map");await localShowFor("cards");
+      toast("'"+handle.name+"' 폴더 접근 권한을 다시 허용했습니다");
+    }else{
+      toast("권한을 허용해야 이 폴더를 사용할 수 있어요");
+    }
+  }catch(e){toast("권한을 다시 요청하지 못했습니다 — "+e.message);}
+}
+function localDisconnectFolder(){
+  if(!confirm("연결된 로컬 폴더를 끊을까요? 폴더 안의 파일은 그대로 남아 있고, 지금 열려 있는 문서도 계속 편집할 수 있어요 — 다만 이 목록은 더 이상 여기 보이지 않게 됩니다."))return;
+  try{idbSet(localFolderKey(),null);}catch(e){}
+  localFolderHandle=null;localConnected=false;localTree={map:null,cards:null};
+  ["map","cards"].forEach(kind=>{const inline=$(kind==="map"?"localInlineMap":"localInlineCards");if(inline)inline.hidden=true;});
+  localUpdateGateVisibility();
+  localRenderGateButtons();
+  toast("로컬 폴더 연결을 끊었습니다");
+}
+async function localRenderGateButtons(){
+  const mb=$("localGateConnectMap"),cb=$("localGateConnectCards");
+  if(!mb||!cb)return;
+  if(!localSupported()){mb.style.display="none";cb.style.display="none";return;}
+  const handle=await localGetFolderHandle();
+  const label=handle?("📂 '"+handle.name+"' 다시 연결(권한 허용)"):"📂 로컬 폴더 연결(항상 여기서 열어보기)";
+  mb.textContent=label;cb.textContent=label;
+}
+async function localGateConnectClicked(){
+  const handle=await localGetFolderHandle();
+  if(handle){
+    const ok=await localFolderPermitted(handle);
+    if(ok){
+      localFolderHandle=handle;localConnected=true;localTree={map:null,cards:null};
+      await localShowFor("map");await localShowFor("cards");
+      return;
+    }
+    await localReconnectPermission(handle);
+  }else{
+    await localConnectFolder();
+  }
+}
+function bindLocalInline(kind){
+  const wrap=$(kind==="map"?"localInlineMap":"localInlineCards");
+  if(!wrap)return;
+  wrap.addEventListener("click",async e=>{
+    const importBtn=e.target.closest(".dtImportBtn");
+    if(importBtn){e.stopPropagation();localTreeImportInto(kind,importBtn.dataset.id);return;}
+    const newFileBtn=e.target.closest(".dtNewFileBtn");
+    if(newFileBtn){e.stopPropagation();await localTreeNewFile(kind,newFileBtn.dataset.id);return;}
+    const moreBtn=e.target.closest(".dtMoreBtn");
+    if(moreBtn){e.stopPropagation();localRowMenu(kind,moreBtn.dataset.type,moreBtn.dataset.id,moreBtn.dataset.name,e);return;}
+    const newBtn=e.target.closest(".dtNewBtn");
+    if(newBtn){e.stopPropagation();await localTreeNewFolder(kind,newBtn.dataset.id);return;}
+    const folderRow=e.target.closest(".dtFolderRow");
+    if(folderRow){await localTreeToggle(kind,folderRow.dataset.id);return;}
+    const fileRow=e.target.closest(".dtFileRow");
+    if(fileRow){
+      const node=localNodeById(kind,fileRow.dataset.id);
+      if(!node)return;
+      fileRow.style.opacity=".5";
+      try{await localTreeOpenFile(kind,node);}
+      catch(e2){toast("파일을 열지 못했습니다 — "+e2.message);}
+      finally{fileRow.style.opacity="";}
+      return;
+    }
+    const sortToggleBtn=e.target.closest(".driveInlineSort");
+    if(sortToggleBtn){toggleSortModeEverywhere();return;}
+    const topNewBtn=e.target.closest(".localInlineNewFolder");
+    if(topNewBtn){const root=localTree[kind];if(root)await localTreeNewFolder(kind,root.id);return;}
+    const topImportBtn=e.target.closest(".localInlineImport");
+    if(topImportBtn){const root=localTree[kind];if(root)localTreeImportInto(kind,root.id);return;}
+    const topNewFileBtn=e.target.closest(".localInlineNewFile");
+    if(topNewFileBtn){const root=localTree[kind];if(root)await localTreeNewFile(kind,root.id);return;}
+    const syncBtn=e.target.closest(".localInlineSync");
+    if(syncBtn){
+      syncBtn.disabled=true;
+      try{await localTreeRefreshAll(kind);toast("목록을 새로고침했습니다");}
+      catch(e2){toast("새로고침하지 못했습니다 — "+e2.message);}
+      syncBtn.disabled=false;
+      return;
+    }
+    const discBtn=e.target.closest(".localInlineDisconnect");
+    if(discBtn){localDisconnectFolder();return;}
+  });
+}
+/* 앱을 열 때 이전에 연결해둔 폴더가 있으면(IndexedDB에 핸들이 남아 있으면) 그
+   권한이 아직 살아있는지만 조용히 확인한다(queryPermission — 아무 팝업도 뜨지
+   않는 순수 확인). 권한이 아직 있으면 곧바로 목록을 보여주고, 끊겼으면(브라우저를
+   완전히 새로 켠 뒤 등) 게이트의 "다시 연결" 버튼을 눌러야만(사용자 클릭이 있어야
+   허용되는 requestPermission) 다시 연결된다 — 여기서도 "백업/로그인은 사용자가
+   직접 눌렀을 때만" 원칙을 그대로 따른다. */
+async function localInlineBoot(){
+  await localRenderGateButtons();
+  if(!localSupported())return;
+  const handle=await localGetFolderHandle();
+  if(!handle)return;
+  const ok=await localFolderPermitted(handle);
+  if(ok){
+    localFolderHandle=handle;localConnected=true;
+    await localShowFor("map");
+    await localShowFor("cards");
+  }
+}
+bindLocalInline("map");
+bindLocalInline("cards");
+$("localGateConnectMap").addEventListener("click",localGateConnectClicked);
+$("localGateConnectCards").addEventListener("click",localGateConnectClicked);
+$("localImportInput").addEventListener("change",async e=>{
+  const f=e.target.files[0];
+  e.target.value="";
+  if(!f||!localImportTarget)return;
+  const {kind,parentId}=localImportTarget;
+  localImportTarget=null;
+  const parentNode=localNodeById(kind,parentId);
+  if(!parentNode)return;
+  try{
+    const text=await f.text();
+    const fh=await parentNode.handle.getFileHandle(f.name,{create:true});
+    const wr=await fh.createWritable();
+    await wr.write(text);
+    await wr.close();
+    await localLoadChildren(kind,parentNode);
+    parentNode.expanded=true;
+    localTreeRender(kind);
+    toast("'"+f.name+"' 을(를) 이 폴더에 추가했습니다");
+  }catch(err){toast("추가하지 못했습니다 — "+err.message);}
+});
+
 bindDriveInline("map");
 bindDriveInline("cards");
 driveInlineUpdateSortBtnLabel();
@@ -7764,6 +8340,7 @@ $("driveImportInput").addEventListener("change",async e=>{
   }catch(err){toast("가져오지 못했습니다 — "+err.message);}
 });
 driveInlineBoot();
+localInlineBoot();
 driveUpdateHeaderBtn();
 </script>
 </body>
