@@ -2726,18 +2726,59 @@ function installCEShim(root){
    지도 실행취소(undoStack)와 같은 400ms 디바운스 방식). edText는 진짜 textarea,
    edNote/fcEdQ/fcEdA는 installCEShim이 .value를 흉내내므로 네 필드 모두 이 구현
    하나로 함께 쓸 수 있다. */
+/* 필드별 되돌리기는 텍스트(value)만이 아니라 그 필드의 서식(sr: 굵게/기울임/밑줄/
+   취소선/글자크기)과 형광펜(hlr)도 같이 스냅샷에 담는다 — 드래그 선택 후 굵게·형광펜
+   등을 눌러도 텍스트 자체(el.value)는 안 바뀌고 n.sr/n.hlr(노드/카드 쪽 메타데이터)만
+   바뀌는데, 예전엔 그 변화를 이 필드별 되돌리기가 전혀 모르고 있어서 "드래그해서
+   서식 넣고 Ctrl+Z 눌러도 아무 일도 안 일어나는" 버그가 있었다. edText/edNote는
+   byId(editingId)(n)가, fcEdQ/fcEdA는 deck.cards[fcEdIdx](카드)가 그 메타데이터의
+   주인이고, 그 안에서 t(0=제목·문제, 1=메모·답)로 두 필드 몫이 한 배열에 같이 들어있어
+   이 필드의 kind에 해당하는 부분만 떼어서 스냅샷/복원해야 다른 필드 쪽 서식을
+   건드리지 않는다. */
+function fieldOwnerKind(id){
+  if(id==="edText")return{owner:byId(editingId),kind:0};
+  if(id==="edNote")return{owner:byId(editingId),kind:1};
+  if(id==="fcEdQ")return{owner:(deck&&fcEdIdx>=0)?deck.cards[fcEdIdx]:null,kind:0};
+  if(id==="fcEdA")return{owner:(deck&&fcEdIdx>=0)?deck.cards[fcEdIdx]:null,kind:1};
+  return{owner:null,kind:0};
+}
+function fieldStyleSnap(id){
+  const{owner,kind}=fieldOwnerKind(id);
+  if(!owner)return{sr:[],hlr:[]};
+  return{
+    sr:(owner.sr||[]).filter(r=>(r.t?1:0)===kind).map(srClone),
+    hlr:(owner.hlr||[]).filter(r=>(r.t?1:0)===kind).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,c:r.c}))
+  };
+}
+function fieldStyleEqual(a,b){
+  if(!a||!b)return a===b;
+  const ka=JSON.stringify(a.sr),kb=JSON.stringify(b.sr),ha=JSON.stringify(a.hlr),hb=JSON.stringify(b.hlr);
+  return ka===kb&&ha===hb;
+}
+function fieldStyleApply(id,snap){
+  const{owner,kind}=fieldOwnerKind(id);
+  if(!owner)return;
+  owner.sr=normalizeSR((owner.sr||[]).filter(r=>(r.t?1:0)!==kind).concat((snap.sr||[]).map(srClone)));
+  owner.hlr=(owner.hlr||[]).filter(r=>(r.t?1:0)!==kind).concat((snap.hlr||[]).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,c:r.c})));
+}
 const fieldUndoSt={};
-function fieldUndoOf(id){return fieldUndoSt[id]||(fieldUndoSt[id]={stack:[""],pos:0,timer:null});}
-function fieldUndoInit(id,value){const st=fieldUndoOf(id);clearTimeout(st.timer);st.stack=[value];st.pos=0;st.timer=null;}
+function fieldUndoOf(id){return fieldUndoSt[id]||(fieldUndoSt[id]={stack:[{value:"",style:{sr:[],hlr:[]}}],pos:0,timer:null});}
+function fieldUndoInit(id,value){const st=fieldUndoOf(id);clearTimeout(st.timer);st.stack=[{value:value,style:fieldStyleSnap(id)}];st.pos=0;st.timer=null;}
 function fieldUndoSnapshot(id){
   const el=$(id);if(!el)return;
-  const st=fieldUndoOf(id),v=el.value;
-  if(st.stack[st.pos]===v)return;
+  const st=fieldUndoOf(id),v=el.value,s=fieldStyleSnap(id),top=st.stack[st.pos];
+  if(top&&top.value===v&&fieldStyleEqual(top.style,s))return;
   st.stack=st.stack.slice(0,st.pos+1);
-  st.stack.push(v);
+  st.stack.push({value:v,style:s});
   if(st.stack.length>80)st.stack.shift();else st.pos++;
 }
 function fieldUndoSchedule(id){const st=fieldUndoOf(id);clearTimeout(st.timer);st.timer=setTimeout(()=>fieldUndoSnapshot(id),400);}
+/* 서식/형광펜처럼 클릭 한 번으로 끝나는 변경은 디바운스 없이 곧바로 한 단계로
+   스냅샷을 찍는다 — fieldUndoSchedule은 연속 타이핑용 400ms 디바운스라 그대로 쓰면
+   "이 클릭 전까지 쌓여 있던 되돌리기 안 된 입력"과 이번 서식 변경이 한 단계로
+   뭉쳐버릴 수 있어, 먼저 보류 중인 타이핑을 확정(flush)한 뒤 이번 변경을 별도
+   단계로 쌓는다. */
+function fieldUndoBump(id){const st=fieldUndoOf(id);clearTimeout(st.timer);fieldUndoSnapshot(id);}
 function fieldUndoApply(id,dir){
   const el=$(id);if(!el)return;
   const st=fieldUndoOf(id);
@@ -2747,12 +2788,17 @@ function fieldUndoApply(id,dir){
   if(next<0||next>=st.stack.length)return;
   st.pos=next;
   try{el.focus();}catch(e){}
-  el.value=st.stack[st.pos];
+  const entry=st.stack[st.pos];
+  fieldStyleApply(id,entry.style);
+  el.value=entry.value;
   /* CE 필드(edNote/fcEdQ/fcEdA)는 .value setter(ceReplaceAllText)가 execCommand로
      바꾸면서 자체적으로 input 이벤트를 발생시키지만, 진짜 textarea(edText)는
      .value를 코드로 바꿔도 이벤트가 저절로 안 나가므로 직접 보내줘야 모델·화면이
-     같이 갱신된다. */
+     같이 갱신된다. 서식(sr/hlr)은 .value와 무관하게 바뀌므로 두 필드 종류 모두
+     화면을 직접 다시 그려줘야 한다. */
   if(el.tagName==="TEXTAREA")el.dispatchEvent(new Event("input",{bubbles:true}));
+  if(id==="edText"||id==="edNote"){render();markDirty();renderEditPreviews();}
+  else if(id==="fcEdQ"||id==="fcEdA"){if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();scheduleFcUndo();}
 }
 function fieldUndo(id){fieldUndoApply(id,-1);}
 function fieldRedo(id){fieldUndoApply(id,1);}
@@ -3391,6 +3437,7 @@ function fcApplyStyleToggle(key,label){
   if(!rng){toast("문제나 답에서 적용할 부분을 먼저 드래그 선택하세요");return;}
   const on=toggleStyleRange(c,rng,key);
   scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();
+  fieldUndoBump(rng.t===0?"fcEdQ":"fcEdA");
   toast((rng.t===0?"문제":"답")+" 선택 영역에 "+label+(on?"을 적용했습니다":"을 해제했습니다"));
 }
 function fcApplyFontSize(delta,label){
@@ -3399,6 +3446,7 @@ function fcApplyFontSize(delta,label){
   if(!rng){toast("글자 크기를 바꿀 부분을 먼저 드래그 선택하세요");return;}
   const c=deck.cards[fcEdIdx],nz=applySizeToRange(c,rng,delta);
   scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();
+  fieldUndoBump(rng.t===0?"fcEdQ":"fcEdA");
   toast((rng.t===0?"문제":"답")+" 선택 영역 글자를 "+label+" 조정했습니다 ("+Math.round(szEm(nz)*100)+"%)");
 }
 [["fcEdBold","b","굵게"],["fcEdItalic","i","기울임"],["fcEdUnderline","u","밑줄"],["fcEdStrike","x","취소선"]].forEach(pair=>{
@@ -3512,6 +3560,7 @@ function edApplyStyleToggle(key,label){
   if(!rng){toast("이름이나 메모에서 적용할 부분을 먼저 드래그 선택하세요");return;}
   const on=toggleStyleRange(n,rng,key);
   render();markDirty();renderEditPreviews();
+  fieldUndoBump(rng.t===0?"edText":"edNote");
   toast((rng.t===0?"이름":"메모")+" 선택 영역에 "+label+(on?"을 적용했습니다":"을 해제했습니다"));
 }
 function edApplyFontSize(delta,label){
@@ -3520,6 +3569,7 @@ function edApplyFontSize(delta,label){
   if(!rng){toast("글자 크기를 바꿀 부분을 먼저 드래그 선택하세요");return;}
   const nz=applySizeToRange(n,rng,delta);
   render();markDirty();renderEditPreviews();
+  fieldUndoBump(rng.t===0?"edText":"edNote");
   toast((rng.t===0?"노드":"메모")+" 선택 영역 글자를 "+label+" 조정했습니다 ("+Math.round(szEm(nz)*100)+"%)");
 }
 [["edBold","b","굵게"],["edItalic","i","기울임"],["edUnderline","u","밑줄"],["edStrike","x","취소선"]].forEach(pair=>{
@@ -3572,6 +3622,7 @@ function edApplyHighlight(color){
   edLastHlColor=color;
   addHlRange(n,{t:rng.t,s:rng.s,e:rng.e,c:color});
   render();markDirty();renderEditPreviews();
+  fieldUndoBump(rng.t===0?"edText":"edNote");
   toast((rng.t===0?"이름":"메모")+"의 선택 영역에 형광펜을 적용했습니다");
   $("edFloatHl").classList.remove("show");
 }
@@ -3597,9 +3648,13 @@ document.querySelectorAll(".edSw").forEach(b=>{
     if(rng){
       removeHlRange(n,rng);
       render();markDirty();renderEditPreviews();
+      fieldUndoBump(rng.t===0?"edText":"edNote");
       toast((rng.t===0?"이름":"메모")+"의 선택 영역 형광펜을 지웠습니다");
     }else{
       n.hl="";n.hlr=[];render();markDirty();renderEditPreviews();
+      /* 선택 영역 없이 전체를 지운 경우 제목/메모 둘 중 어느 쪽인지 알 수 없으므로
+         (실제로는 둘 다 한꺼번에 비워지므로) 두 필드 모두 되돌리기 단계를 남긴다. */
+      fieldUndoBump("edText");fieldUndoBump("edNote");
       toast("이 노드의 형광펜을 모두 지웠습니다");
     }
     $("edFloatHl").classList.remove("show");
@@ -7279,6 +7334,7 @@ function fcApplyHighlight(color){
   fcEdLastHlColor=color;
   addHlRange(c,{t:rng.t,s:rng.s,e:rng.e,c:color});
   scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();
+  fieldUndoBump(rng.t===0?"fcEdQ":"fcEdA");
   toast((rng.t===0?"문제":"답")+"의 선택 영역에 형광펜을 적용했습니다");
   $("fcEdFloatHl").classList.remove("show");
 }
@@ -7294,10 +7350,14 @@ document.querySelectorAll(".fcEdSw").forEach(b=>{const keep=e=>{e.preventDefault
     if(rng){
       removeHlRange(c,rng);
       scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();
+      fieldUndoBump(rng.t===0?"fcEdQ":"fcEdA");
       toast((rng.t===0?"문제":"답")+"의 선택 영역 형광펜을 지웠습니다");
     }else{
       c.hl="";c.hlr=[];
       scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();renderFcEditPreviews();
+      /* 선택 영역 없이 카드 전체를 지운 경우 문제/답 둘 다 한꺼번에 비워지므로
+         두 필드 모두 되돌리기 단계를 남긴다. */
+      fieldUndoBump("fcEdQ");fieldUndoBump("fcEdA");
       toast("이 카드의 형광펜을 모두 지웠습니다");
     }
     $("fcEdFloatHl").classList.remove("show");
