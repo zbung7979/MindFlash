@@ -363,6 +363,7 @@ main{padding:8px 0 90px}
 .noteView .artRef:hover{background:rgba(92,130,196,.16);border-radius:3px}
 #nmBack{margin-right:6px}
 #nmBack.hidden{display:none}
+#nmTitle{flex:1;min-width:0}
 /* ── 노드 편집: 편집과 미리보기를 한 화면에 합친 실시간 서식 입력창 ──
    실제 입력은 투명한 textarea가 그대로 받고(한글 IME 안전), 그 아래 겹친
    div가 굵게/기울임/형광펜 등 서식이 적용된 결과를 실시간으로 보여준다. */
@@ -958,7 +959,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <div id="noteModal" class="overlay hidden">
   <div class="card">
-    <header><button id="nmBack" class="hidden" title="이전 조문으로">← 뒤로</button><span id="nmTitle"></span><button data-close>닫기</button></header>
+    <header><button id="nmBack" class="hidden" title="이전 조문으로">← 뒤로</button><span id="nmTitle"></span><button id="nmEdit" title="지금 보고 있는 조문의 제목·메모를 수정">✏ 편집</button><button data-close>닫기</button></header>
     <div class="body"><div id="nmText" class="noteView"></div></div>
   </div>
 </div>
@@ -3403,6 +3404,15 @@ function showNodeNote(n){
   if(n.note)openNoteModal(n);
   else toast("메모가 없습니다 — 연필 아이콘(편집)에서 추가할 수 있어요");
 }
+/* 팝업 안에서 편집(✏)으로 조문을 고치고 돌아오면 팝업 내용을 새로 그린다. 편집 중 그 노드가
+   삭제됐다면 이력에서 아직 남아 있는 가장 가까운 조문으로 돌아가고, 없으면 팝업을 닫는다. */
+function nmRefresh(){
+  if($("noteModal").classList.contains("hidden"))return;
+  let n=byId(nmCurrentId);
+  while(!n&&nmHistory.length)n=byId(nmHistory.pop());
+  if(n)nmShow(n);else closeNoteModal();
+}
+$("nmEdit").addEventListener("click",e=>{e.stopPropagation();const n=byId(nmCurrentId);if(n)openEdit(n);});
 $("nmBack").addEventListener("click",e=>{e.stopPropagation();nmGoBack();});
 $("nmText").addEventListener("click",e=>{
   const ref=e.target.closest(".artRef");
@@ -3613,7 +3623,7 @@ function openEdit(n){
   renderEditPreviews();
   try{$("edText").focus();}catch(e){}
 }
-function closeEdit(){editingId=null;$("editModal").classList.add("hidden");}
+function closeEdit(){editingId=null;$("editModal").classList.add("hidden");nmRefresh();}
 $("edText").addEventListener("input",()=>{const n=byId(editingId);if(n){const nv=$("edText").value;applyTextEditToRanges(n,0,n.text,nv);n.text=nv;render();markDirty();renderEditPreviews();fieldUndoSchedule("edText");}});
 $("edText").addEventListener("scroll",()=>{syncScrollPair("edText","edTextPreview");updateEdCarets();});
 /* edNote(contenteditable)는 타이핑할 때마다 DOM을 통째로 다시 그리지 않는다 -
@@ -4255,6 +4265,14 @@ addEventListener("popstate",e=>{
      때도(popupSuppressRoute) 이 라우팅이 실행되면 안 된다 — 그렇지 않으면 팝업을 닫을
      때마다 문서가 마지막 저장본으로 다시 로드되어 편집 중이던 내용이 날아간다. */
   if(popupSuppressRoute){popupSuppressRoute=false;popupHistGuard=false;return;}
+  /* 메모 팝업에서 인용 링크를 타고 들어간 상태라면, 뒤로가기는 팝업을 닫는 대신 "← 뒤로"와
+     똑같이 직전 조문으로 돌아간다(그 위에 편집창 등 다른 팝업이 없을 때). 방금 소비된 더미
+     히스토리 항목은 다시 쌓아 다음 뒤로가기도 같은 방식으로 받는다. */
+  if(!$("noteModal").classList.contains("hidden")&&nmHistory.length&&$("editModal").classList.contains("hidden")&&$("fcCardModal").classList.contains("hidden")){
+    nmGoBack();
+    try{history.pushState({mfPopupGuard:true},"");}catch(err){}
+    return;
+  }
   if(anyPopupOpen()){
     popupHistGuard=false;
     popupClosingViaBack=true;
@@ -5233,9 +5251,10 @@ $("diagTableWrap").addEventListener("click",e=>{
    똑같은 우선순위로 이걸 그대로 재사용한다: 메모/카드편집/노드편집처럼 별도 정리가 필요한
    모달을 먼저 확인하고, 그 다음 일반 .overlay, 그 다음 우클릭 메뉴, 마지막으로 더보기 메뉴. */
 function closeTopOverlayOrMenu(){
-  if(!$("noteModal").classList.contains("hidden")){closeNoteModal();return true;}
+  /* 편집창은 메모 팝업 위에서 열릴 수 있으므로(팝업의 ✏ 편집) 메모 팝업보다 먼저 닫는다. */
   if(!$("fcCardModal").classList.contains("hidden")){closeFcEdit();return true;}
   if(!$("editModal").classList.contains("hidden")){closeEdit();return true;}
+  if(!$("noteModal").classList.contains("hidden")){closeNoteModal();return true;}
   if(document.querySelector(".overlay:not(.hidden)")){
     const ov=[...document.querySelectorAll(".overlay:not(.hidden)")].pop();
     ov.classList.add("hidden");
