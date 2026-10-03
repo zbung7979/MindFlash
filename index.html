@@ -213,6 +213,8 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 .dstyle input[type="range"]{flex:1}
 .dstyle .dval{width:44px;text-align:right;font-size:12px;color:var(--muted)}
 .dstyle .dmini{width:30px;font-size:11px;color:var(--muted);flex:none}
+.dstyle .dtcauto{border:1px solid var(--line);background:var(--bg);color:var(--c0t);border-radius:8px;padding:3px 8px;font:inherit;font-size:11.5px;cursor:pointer}
+.dstyle .dvaltc{width:64px;text-align:left;margin-left:2px}
 .dstyle input[type="range"]{min-width:60px}
 .dstyle .dbasic{border:1px solid var(--line);background:none;color:inherit;border-radius:6px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer}
 .fhist .fhcap{font-size:11px;color:var(--muted);padding:7px 13px 3px;font-weight:700}
@@ -360,10 +362,24 @@ main{padding:8px 0 90px}
    (linkifyArticleRefsInContainer). 실제 <a>가 아니라 클릭을 가로채는 span이라 href
    미리보기 같은 기본 동작은 없고, 밑줄+포인터로만 "누를 수 있다"는 걸 알린다. */
 .noteView .artRef{color:var(--chev);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer}
+.noteView .artRef.man{text-decoration-style:solid}
 .noteView .artRef:hover{background:rgba(92,130,196,.16);border-radius:3px}
 #nmBack{margin-right:6px}
 #nmBack.hidden{display:none}
 #nmTitle{flex:1;min-width:0}
+#lpList{max-height:48vh;overflow-y:auto;border:1px solid var(--line);border-radius:9px}
+.lpItem{display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--c0t);font:inherit;font-size:13.5px;cursor:pointer}
+.lpItem:last-child{border-bottom:0}
+.lpItem:hover{background:var(--rowhover)}
+.lpItem .lpPath{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lpSel{font-size:12.5px;color:var(--muted)}
+.lpSel b{color:var(--c0t)}
+.lpBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.lpBtns button{border:1px solid var(--line);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;color:var(--c0t);background:var(--bg)}
+.bfRow{display:flex;gap:6px;flex-wrap:wrap;padding:4px 14px}
+.bfRow button{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;color:var(--c0t);background:var(--bg)}
+.bfRow button.on{background:var(--chev);color:#fff;border-color:var(--chev)}
+.bfRow .bfSw{width:24px;height:24px;padding:0;border-radius:6px}
 /* ── 노드 편집: 편집과 미리보기를 한 화면에 합친 실시간 서식 입력창 ──
    실제 입력은 투명한 textarea가 그대로 받고(한글 IME 안전), 그 아래 겹친
    div가 굵게/기울임/형광펜 등 서식이 적용된 결과를 실시간으로 보여준다. */
@@ -709,7 +725,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <span class="abdiv"></span>
   <button class="iconbtn" id="btnFont" title="글자 크기·글꼴" aria-label="글자 크기와 글꼴 설정">
     <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 15L8 4l5 11M5 11.5h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 15l2.8-6.5L19 15M14.6 13h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/></svg></button>
-  <button class="iconbtn" id="btnPalette" title="색감" aria-label="화면 색감 선택">
+  <button class="iconbtn" id="btnPalette" title="테마" aria-label="테마 설정">
     <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2.5a7.5 7.5 0 100 15c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h1.9A3.5 3.5 0 0018 8c0-3-3.6-5.5-8-5.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="8" r="1.1" fill="currentColor"/><circle cx="10" cy="5.8" r="1.1" fill="currentColor"/><circle cx="14" cy="8" r="1.1" fill="currentColor"/></svg></button>
   <button class="iconbtn" id="btnTheme" title="다크모드" aria-label="다크모드 전환"></button>
   <span class="abdiv"></span>
@@ -739,6 +755,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
     <svg width="16" height="16" viewBox="0 0 20 20"><path d="M2.8 3.5h14.4l-5.6 6.6v5.4l-3.2 1.8v-7.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="fbadge" id="filterBadge"></span></button>
   <button class="sbtn" id="btnResultsToCards" title="검색·필터 결과를 카드로" aria-label="검색·필터 결과를 카드로">
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.6" y="6.2" width="11.6" height="9.2" rx="2.2"/><path d="M5.8 3.6h8.6a2.2 2.2 0 012.2 2.2v6" stroke-linecap="round"/><path d="M6 10.8h4M6 13.2h6" stroke-linecap="round"/></svg></button>
+  <button class="sbtn" id="btnBulkFmt" title="검색·필터한 단어에 형광펜/굵게 등 서식 일괄 적용" aria-label="검색·필터 단어 서식 일괄 적용"><span style="font-weight:800;font-size:14px;text-decoration:underline;text-decoration-color:#FCA000;text-decoration-thickness:3px">A</span></button>
   <span class="mag"><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
 </div>
 
@@ -766,7 +783,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <div class="hr"></div>
   <div class="cap">설정</div>
   <button data-act="save-prefs-html">현재 설정 저장 (HTML)</button>
-  <button data-act="reset-prefs">색감·스타일 초기화</button>
+  <button data-act="reset-prefs">테마·스타일 초기화</button>
   <div class="hr"></div>
   <div class="cap">내보내기</div>
   <button data-act="exp-mm">프리마인드 (.mm)</button>
@@ -797,7 +814,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <div class="hr"></div>
   <div class="cap">설정</div>
   <button data-act="save-prefs-html">현재 설정 저장 (HTML)</button>
-  <button data-act="reset-prefs">색감·스타일 초기화</button>
+  <button data-act="reset-prefs">테마·스타일 초기화</button>
   <div class="hr"></div>
   <div class="cap">내보내기</div>
   <button data-act="fc-exp-csv">CSV (.csv)</button>
@@ -1049,6 +1066,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <button type="button" id="edFzUp" title="선택한 글자만 크게 (Ctrl+Shift+.)">A▴</button>
         <span class="efDiv"></span>
         <button type="button" id="edHlToggle" title="형광펜 (Ctrl+Shift+H: 마지막 색으로 바로 적용)">🖍</button>
+        <span class="efDiv"></span>
+        <button type="button" id="edRefLink" title="선택한 글자를 다른 노드(조문)로 연결 — 메모에서만">🔗 연결</button>
       </div>
       <div id="edFloatHl">
         <button type="button" class="edSw" data-c="#F20970" title="밝은 색" style="background:#F20970"></button>
@@ -1134,10 +1153,24 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 <input id="fontFileInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff" hidden>
 
 <div id="lightbox" class="overlay hidden"><img id="lightboxImg" alt="확대 이미지"></div>
+<div id="linkPickModal" class="overlay hidden">
+  <div class="card">
+    <header><span>연결할 노드 고르기</span><button data-close>닫기</button></header>
+    <div class="body">
+      <div id="lpSel" class="lpSel"></div>
+      <input id="lpSearch" type="text" placeholder="연결할 노드 이름 검색 (예: 제52조의2)" autocomplete="off">
+      <div id="lpList"></div>
+      <div class="lpBtns">
+        <button type="button" id="lpNone" title="이 글자는 자동으로도 링크를 걸지 않습니다">링크 안 함</button>
+        <button type="button" id="lpAuto" title="직접 지정한 연결을 지우고 자동 감지로 되돌립니다">자동 감지로 되돌리기</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="paletteModal" class="overlay hidden">
   <div class="card">
-    <header><span>색감</span><button data-close>닫기</button></header>
+    <header><span>테마</span><button data-close>닫기</button></header>
     <div class="body">
       <label>화면 색감</label>
       <div class="seg" id="hueSeg">
@@ -1156,14 +1189,14 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       </div>
       <label>추천 테마 (레벨별 색 구분)</label>
       <div class="themeRow" id="themeRow"></div>
-      <label>레벨별 배경·밝기·크기</label>
+      <label>레벨별 배경·글자색·밝기·크기</label>
       <div id="depthStyles"></div>
       <label>미리보기</label>
       <div id="depthPreview"></div>
-      <p class="phint">밝기와 다크모드는 그대로, 색 조합만 바뀝니다 · 글자색은 배경에 맞춰 자동 · 크기는 이 레벨 노드의 글자·여백을 함께 키우거나 줄입니다</p>
+      <p class="phint">밝기와 다크모드는 그대로, 색 조합만 바뀝니다 · 글자색은 기본이 배경에 맞춘 자동이고, "글자" 색을 고르면 그 색으로 고정됩니다("자동"으로 되돌리기 가능) · 크기는 이 레벨 노드의 글자·여백을 함께 키우거나 줄입니다</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button id="btnSavePrefsHtml" style="border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">설정을 담은 HTML로 저장</button>
-        <button id="btnResetPrefs" style="border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">색감 초기화</button>
+        <button id="btnResetPrefs" style="border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">테마 초기화</button>
       </div>
     </div>
   </div>
@@ -1640,7 +1673,7 @@ async function driveTrashFile(fileId){
 }
 
 let seq=1;
-const mk=t=>({id:"n"+(seq++),text:t,note:"",link:"",image:"",folded:false,color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",children:[]});
+const mk=t=>({id:"n"+(seq++),uid:"",lkr:[],text:t,note:"",link:"",image:"",folded:false,color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",children:[]});
 let model=null, editingId=null, showNotes=false;
 let fileHandle=null,saveTimer=null,dragId=null,dragIds=[],dropTargetId=null,dropMode=null;
 let q="", matches=[], cur=-1;
@@ -1668,7 +1701,7 @@ if(!prefs.themeOverrides||typeof prefs.themeOverrides!=='object')prefs.themeOver
 try{if(window.MM_SAVED_PREFS)prefs=Object.assign(prefs,window.MM_SAVED_PREFS);}catch(e){}
 /* 예전 버전에서 저장된 prefs.depthStyles에는 sz(레벨별 크기) 필드가 없을 수 있으므로,
    불러온 뒤 각 항목에 sz가 없으면 0(기본 크기)으로 채워 넣는다. */
-if(Array.isArray(prefs.depthStyles))prefs.depthStyles=prefs.depthStyles.map(d=>({c:(d&&d.c)||"",b:(d&&isFinite(d.b))?+d.b:0,sz:(d&&isFinite(d.sz))?+d.sz:0}));
+if(Array.isArray(prefs.depthStyles))prefs.depthStyles=prefs.depthStyles.map(d=>({c:(d&&d.c)||"",b:(d&&isFinite(d.b))?+d.b:0,sz:(d&&isFinite(d.sz))?+d.sz:0,tc:(d&&/^#[0-9a-f]{6}$/i.test(d.tc||""))?d.tc:""}));
 function savePrefs(){try{localStorage.setItem("mmweb.prefs",JSON.stringify(prefs));}catch(e){}}
 function applyPrefs(){
   document.documentElement.dataset.theme=prefs.theme;
@@ -1789,19 +1822,25 @@ $("hueSeg").addEventListener("click",e=>{
 function renderDepthUI(){
   const wrap=$("depthStyles");wrap.innerHTML="";
   if(!Array.isArray(prefs.depthStyles))prefs.depthStyles=[];
-  while(prefs.depthStyles.length<8)prefs.depthStyles.push({c:"",b:0,sz:0});
+  while(prefs.depthStyles.length<8)prefs.depthStyles.push({c:"",b:0,sz:0,tc:""});
   prefs.depthStyles=prefs.depthStyles.slice(0,8);
   const labs=["루트","레벨 1","레벨 2","레벨 3","레벨 4","레벨 5","레벨 6","레벨 7+"];
   prefs.depthStyles.forEach((ds,i)=>{
     if(!isFinite(ds.sz))ds.sz=0;
     const row=document.createElement("div");row.className="dstyle";
     row.innerHTML='<div class="dtop"><span class="dlab"></span><input type="color" title="배경 색상"><button class="dbasic">기본</button></div>'
+      +'<div class="dslider"><span class="dmini">글자</span><input type="color" class="dtc" title="이 레벨의 글자 색상"><button class="dtcauto" type="button" title="배경에 맞춰 자동으로">자동</button><span class="dval dvaltc"></span></div>'
       +'<div class="dslider"><span class="dmini">밝기</span><input type="range" class="dbr" min="-20" max="20" step="1" title="밝기"><span class="dval dvalb"></span></div>'
       +'<div class="dslider"><span class="dmini">크기</span><input type="range" class="dsz" min="-40" max="80" step="5" title="이 레벨 노드의 크기"><span class="dval dvalsz"></span></div>'
       +'<div class="dbtns"><button class="dapply" title="이 레벨의 모든 노드에 적용">레벨 전체</button><button class="dpick" title="지금 선택한 노드에만 적용(색만)">선택 노드</button></div>';
     row.querySelector(".dlab").textContent=labs[i];
     const ci=row.querySelector('input[type="color"]'),rg=row.querySelector('.dbr'),dv=row.querySelector(".dvalb"),
       sg=row.querySelector('.dsz'),sv=row.querySelector(".dvalsz");
+    const tci=row.querySelector(".dtc"),tcv=row.querySelector(".dvaltc");
+    const showTc=()=>{tci.value=ds.tc||(ds.c?(levelInk(ds.c)||"#ffffff"):"#ffffff");tcv.textContent=ds.tc?ds.tc.toUpperCase():"자동";};
+    showTc();
+    tci.addEventListener("input",()=>{ds.tc=tci.value;tcv.textContent=ds.tc.toUpperCase();savePrefs();render();renderDepthPreview();});
+    row.querySelector(".dtcauto").addEventListener("click",()=>{ds.tc="";showTc();savePrefs();render();renderDepthPreview();});
     ci.value=ds.c||"#7f8c8d";
     rg.value=ds.b||0;
     dv.textContent=(ds.b>0?"+":"")+ds.b+"%";
@@ -1810,7 +1849,7 @@ function renderDepthUI(){
     ci.addEventListener("input",()=>{ds.c=ci.value;snapshotThemeEdit();savePrefs();render();renderDepthPreview();});
     rg.addEventListener("input",()=>{ds.b=+rg.value;dv.textContent=(ds.b>0?"+":"")+ds.b+"%";snapshotThemeEdit();savePrefs();render();renderDepthPreview();});
     sg.addEventListener("input",()=>{ds.sz=+sg.value;sv.textContent=(ds.sz>0?"+":"")+ds.sz+"%";snapshotThemeEdit();savePrefs();render();renderDepthPreview();});
-    row.querySelector(".dbasic").addEventListener("click",()=>{ds.c="";ds.b=0;ds.sz=0;savePrefs();renderDepthUI();render();renderDepthPreview();});
+    row.querySelector(".dbasic").addEventListener("click",()=>{ds.c="";ds.b=0;ds.sz=0;ds.tc="";savePrefs();renderDepthUI();render();renderDepthPreview();});
     row.querySelector(".dapply").addEventListener("click",()=>{ds.c=ci.value;ds.b=+rg.value;ds.sz=+sg.value;dv.textContent=(ds.b>0?"+":"")+ds.b+"%";sv.textContent=(ds.sz>0?"+":"")+ds.sz+"%";snapshotThemeEdit();savePrefs();render();renderDepthPreview();toast(labs[i]+" 노드 전체에 색·크기를 적용했습니다");});
     row.querySelector(".dpick").addEventListener("click",()=>applyColorToSelection(ci.value));
     wrap.appendChild(row);
@@ -1833,6 +1872,8 @@ const THEME_PRESETS=[
    해제한다(테마 버튼 중 아무것도 켜지지 않은 "커스텀" 상태가 됨). */
 if(prefs.themePreset&&!THEME_PRESETS.some(t=>t.k===prefs.themePreset)){prefs.themePreset="";savePrefs();}
 function levelInk(col){return hlInk(col);}
+/* 레벨의 글자색: 사용자가 직접 정한 글자색(ds.tc)이 있으면 그것, 없으면 배경색에 맞춘 자동 색 */
+function levelInkOf(ds){return (ds&&ds.tc)||((ds&&ds.c)?levelInk(ds.c):"");}
 /* 레벨별 "크기"(sz)는 색감 테마(THEME_PRESETS/themeOverrides)와는 독립적인 설정이다 —
    테마는 색만 담당하고, 크기는 테마를 바꾸거나 꺼도 그대로 유지된다. 그래서 이 함수와
    snapshotThemeEdit는 c(색)·b(밝기)만 다루고 sz는 건드리지 않는다. */
@@ -1854,7 +1895,7 @@ function snapshotThemeEdit(){
    지금까지 설정해 둔 레벨별 크기(sz)를 잃지 않도록 새 depthStyles에 다시 채워 넣는다. */
 function withCurrentSizes(newDepthStyles){
   const cur=prefs.depthStyles||[];
-  return (newDepthStyles||[]).map((d,i)=>({c:d.c||"",b:+d.b||0,sz:+(cur[i]&&cur[i].sz)||0}));
+  return (newDepthStyles||[]).map((d,i)=>({c:d.c||"",b:+d.b||0,sz:+(cur[i]&&cur[i].sz)||0,tc:(cur[i]&&cur[i].tc)||""}));
 }
 function resetThemeEdit(){
   const k=prefs.themePreset;if(!k)return;
@@ -1871,6 +1912,14 @@ function applyThemePreset(k){
   savePrefs();renderDepthUI();renderDepthPreview();renderThemeRow();render();
   toast(th.n+" 색감을 적용했습니다 — 아래에서 색을 조정하면 이 테마에 저장됩니다"+(isThemeEdited(k)?" (편집본)":""));
 }
+function resetThemePrefs(){
+  prefs.themePreset="";
+  prefs.depthStyles=prefs.depthStyles.map(()=>({c:"",b:0,sz:0,tc:""}));
+  savePrefs();
+  try{renderDepthUI();renderDepthPreview();renderThemeRow();}catch(e){}
+  render();toast("테마·스타일 설정을 초기화했습니다");
+}
+$("btnResetPrefs").addEventListener("click",resetThemePrefs);
 function renderThemeRow(){
   const row=$("themeRow");if(!row)return;row.innerHTML="";
   const hint=document.createElement("div");
@@ -1898,7 +1947,7 @@ function renderThemeRow(){
   }
   const off=document.createElement("button");
   off.type="button";off.textContent="테마 끄기";
-  off.addEventListener("click",()=>{prefs.themePreset="";prefs.depthStyles=prefs.depthStyles.map(d=>({c:"",b:0,sz:+d.sz||0}));savePrefs();renderDepthUI();renderDepthPreview();render();});
+  off.addEventListener("click",()=>{prefs.themePreset="";prefs.depthStyles=prefs.depthStyles.map(d=>({c:"",b:0,sz:+d.sz||0,tc:d.tc||""}));savePrefs();renderDepthUI();renderDepthPreview();render();});
   row.appendChild(off);
 }
 function renderDepthPreview(){
@@ -1909,7 +1958,7 @@ function renderDepthPreview(){
     const d=document.createElement("div");d.className="dpv";
     d.textContent=labs[i]+" · 가나다 ABC";
     let st="margin-left:"+(i*9)+"px;";
-    if(ds&&ds.c){st+="background:"+ds.c+";";const ik=levelInk(ds.c);if(ik)st+="color:"+ik+";";}
+    if(ds&&ds.c)st+="background:"+ds.c+";";{const ik=levelInkOf(ds);if(ik)st+="color:"+ik+";";}
     if(ds&&ds.b)st+="filter:brightness("+(1+ds.b/100).toFixed(2)+");";
     if(ds&&ds.sz){const sc=1+ds.sz/100;st+="font-size:"+(12.5*sc).toFixed(1)+"px;padding:"+(5*sc).toFixed(1)+"px "+(9*sc).toFixed(1)+"px;";}
     d.setAttribute("style",st);
@@ -2047,6 +2096,8 @@ function buildNodeMM(el){
   n.hl=(el.getAttribute("HIGHLIGHT")||"").toLowerCase();
   n.hlr=parseHLR(el.getAttribute("HL_RANGES"));
   n.sr=parseSR(el.getAttribute("STYLE_RANGES"));
+  n.uid=(el.getAttribute("MFID")||"").replace(/[^a-z0-9]/gi,"");
+  n.lkr=parseLKR(el.getAttribute("LINK_RANGES"));
   n.st=(el.getAttribute("NODE_STYLE")||"").replace(/[^a-z0-9-]/gi,"");
   n.shape=(el.getAttribute("NODE_SHAPE")||"").replace(/[^a-z0-9-]/gi,"");
   n.view=(el.getAttribute("NODE_VIEW")||"").replace(/[^a-z0-9-]/gi,"");
@@ -2131,6 +2182,8 @@ function serNode(n,ind){
   if(n.hl)a+=' HIGHLIGHT="'+escA(n.hl)+'"';
   if(n.hlr&&n.hlr.length)a+=' HL_RANGES="'+escA(serHLR(n.hlr))+'"';
   if(n.sr&&n.sr.length)a+=' STYLE_RANGES="'+escA(serSR(n.sr))+'"';
+  if(n.uid)a+=' MFID="'+escA(n.uid)+'"';
+  if(n.lkr&&n.lkr.length)a+=' LINK_RANGES="'+escA(serLKR(n.lkr))+'"';
   if(n.st)a+=' NODE_STYLE="'+escA(n.st)+'"';
   if(n.shape)a+=' NODE_SHAPE="'+escA(n.shape)+'"';
   if(n.view)a+=' NODE_VIEW="'+escA(n.view)+'"';
@@ -2471,6 +2524,23 @@ function markHtml(text){
   return t.replace(new RegExp("("+esc+")","gi"),"<mark>$1</mark>");
 }
 function parseHLR(str){if(!str)return[];return str.split(";").map(p=>p.split(",")).filter(a=>a.length>=4).map(a=>({t:+a[0],s:+a[1],e:+a[2],c:a[3]})).filter(r=>isFinite(r.s)&&isFinite(r.e)&&r.e>r.s);}
+/* 수동 인용 연결(lkr): 메모 글자 구간 [s,e)가 가리키는 노드. 노드 id(n12 같은 실행 중 번호)는
+   파일을 다시 열면 바뀌므로, 연결 대상 노드에 따로 붙인 영구 식별자(uid, 파일의 MFID 속성)로
+   저장한다. u가 빈 문자열이면 "이 구간은 자동 인용 링크를 걸지 않음"이라는 뜻이다. */
+function parseLKR(str){if(!str)return[];return str.split(";").map(p=>p.split(",")).filter(a=>a.length>=4).map(a=>({t:+a[0],s:+a[1],e:+a[2],u:a.slice(3).join(",").replace(/[^a-z0-9]/gi,"")})).filter(r=>isFinite(r.s)&&isFinite(r.e)&&r.e>r.s);}
+function serLKR(rs){return(rs||[]).filter(r=>r&&isFinite(r.s)&&isFinite(r.e)&&r.e>r.s).map(r=>[(r.t?1:0),r.s,r.e,r.u||""].join(",")).join(";");}
+function setLinkRange(n,r,add){
+  const out=[];
+  (n.lkr||[]).forEach(old=>{
+    if((old.t?1:0)!==(r.t?1:0)||old.e<=r.s||old.s>=r.e){out.push(old);return;}
+    if(old.s<r.s)out.push({t:old.t,s:old.s,e:r.s,u:old.u});
+    if(old.e>r.e)out.push({t:old.t,s:r.e,e:old.e,u:old.u});
+  });
+  if(add)out.push({t:r.t?1:0,s:r.s,e:r.e,u:r.u||""});
+  n.lkr=out.filter(x=>x.e>x.s);
+}
+function newNodeUid(){let u;do{u="u"+Math.random().toString(36).slice(2,10);}while(nodeByUid(u));return u;}
+function nodeByUid(u){if(!u)return null;let f=null;walkAll(n=>{if(!f&&n.uid===u)f=n;});return f;}
 function serHLR(rs){return rs.map(r=>[(r.t?1:0),r.s,r.e,r.c].join(",")).join(";");}
 function addHlRange(n,r){
   const out=[];
@@ -2527,7 +2597,7 @@ function applySizeToRange(obj,range,delta){const src=(obj.sr||[]).map(srClone),s
    범위를 확장, '바깥쪽'이면 통째로 밀어주는 방식으로 보정한다. */
 function diffEditSpan(oldStr,newStr){oldStr=String(oldStr??"");newStr=String(newStr??"");if(oldStr===newStr)return null;const oLen=oldStr.length,nLen=newStr.length,maxCommon=Math.min(oLen,nLen);let cp=0;while(cp<maxCommon&&oldStr.charCodeAt(cp)===newStr.charCodeAt(cp))cp++;let cs=0;const maxSuf=maxCommon-cp;while(cs<maxSuf&&oldStr.charCodeAt(oLen-1-cs)===newStr.charCodeAt(nLen-1-cs))cs++;return{from:cp,to:oLen-cs,insertedLen:Math.max(0,nLen-cp-cs)};}
 function mapRangeThroughEdit(r,from,to,insertedLen){const delta=insertedLen-(to-from);if(r.e<=from)return r;if(r.s>=to)return Object.assign({},r,{s:r.s+delta,e:r.e+delta});let ns,ne;if(from<=r.s)ns=from+insertedLen;else ns=r.s;if(to>=r.e)ne=from+insertedLen;else ne=r.e+delta;if(ne<=ns)return null;return Object.assign({},r,{s:ns,e:ne});}
-function applyTextEditToRanges(obj,kind,oldStr,newStr){if(!obj)return;const d=diffEditSpan(oldStr,newStr);if(!d)return;if(obj.hlr&&obj.hlr.length)obj.hlr=obj.hlr.map(r=>(r.t?1:0)===kind?mapRangeThroughEdit(r,d.from,d.to,d.insertedLen):r).filter(r=>r&&r.e>r.s);if(obj.sr&&obj.sr.length)obj.sr=obj.sr.map(r=>(r.t?1:0)===kind?mapRangeThroughEdit(r,d.from,d.to,d.insertedLen):r).filter(r=>r&&r.e>r.s);}
+function applyTextEditToRanges(obj,kind,oldStr,newStr){if(!obj)return;const d=diffEditSpan(oldStr,newStr);if(!d)return;if(obj.hlr&&obj.hlr.length)obj.hlr=obj.hlr.map(r=>(r.t?1:0)===kind?mapRangeThroughEdit(r,d.from,d.to,d.insertedLen):r).filter(r=>r&&r.e>r.s);if(obj.sr&&obj.sr.length)obj.sr=obj.sr.map(r=>(r.t?1:0)===kind?mapRangeThroughEdit(r,d.from,d.to,d.insertedLen):r).filter(r=>r&&r.e>r.s);if(obj.lkr&&obj.lkr.length)obj.lkr=obj.lkr.map(r=>(r.t?1:0)===kind?mapRangeThroughEdit(r,d.from,d.to,d.insertedLen):r).filter(r=>r&&r.e>r.s);}
 
 function setPreviewFocus(id,on){const el=$(id);if(!el)return;el.style.borderColor=on?"var(--chev)":"var(--line)";el.style.boxShadow=on?"0 0 0 2px var(--chev)":"none";}
 function setTabBtnOn(id,on){const b=$(id);if(!b)return;b.style.background=on?"var(--chev)":"var(--bg)";b.style.color=on?"#fff":"var(--c0t)";b.style.borderColor=on?"var(--chev)":"var(--line)";}
@@ -2752,8 +2822,9 @@ function fieldOwnerKind(id){
 }
 function fieldStyleSnap(id){
   const{owner,kind}=fieldOwnerKind(id);
-  if(!owner)return{sr:[],hlr:[]};
+  if(!owner)return{sr:[],hlr:[],lkr:[]};
   return{
+    lkr:(owner.lkr||[]).filter(r=>(r.t?1:0)===kind).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,u:r.u||""})),
     sr:(owner.sr||[]).filter(r=>(r.t?1:0)===kind).map(srClone),
     hlr:(owner.hlr||[]).filter(r=>(r.t?1:0)===kind).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,c:r.c}))
   };
@@ -2761,16 +2832,17 @@ function fieldStyleSnap(id){
 function fieldStyleEqual(a,b){
   if(!a||!b)return a===b;
   const ka=JSON.stringify(a.sr),kb=JSON.stringify(b.sr),ha=JSON.stringify(a.hlr),hb=JSON.stringify(b.hlr);
-  return ka===kb&&ha===hb;
+  return ka===kb&&ha===hb&&JSON.stringify(a.lkr||[])===JSON.stringify(b.lkr||[]);
 }
 function fieldStyleApply(id,snap){
   const{owner,kind}=fieldOwnerKind(id);
   if(!owner)return;
   owner.sr=normalizeSR((owner.sr||[]).filter(r=>(r.t?1:0)!==kind).concat((snap.sr||[]).map(srClone)));
   owner.hlr=(owner.hlr||[]).filter(r=>(r.t?1:0)!==kind).concat((snap.hlr||[]).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,c:r.c})));
+  if(id==="edText"||id==="edNote")owner.lkr=(owner.lkr||[]).filter(r=>(r.t?1:0)!==kind).concat((snap.lkr||[]).map(r=>({t:r.t?1:0,s:+r.s||0,e:+r.e||0,u:r.u||""})));
 }
 const fieldUndoSt={};
-function fieldUndoOf(id){return fieldUndoSt[id]||(fieldUndoSt[id]={stack:[{value:"",style:{sr:[],hlr:[]}}],pos:0,timer:null});}
+function fieldUndoOf(id){return fieldUndoSt[id]||(fieldUndoSt[id]={stack:[{value:"",style:{sr:[],hlr:[],lkr:[]}}],pos:0,timer:null});}
 function fieldUndoInit(id,value){const st=fieldUndoOf(id);clearTimeout(st.timer);st.stack=[{value:value,style:fieldStyleSnap(id)}];st.pos=0;st.timer=null;}
 function fieldUndoSnapshot(id){
   const el=$(id);if(!el)return;
@@ -2937,10 +3009,12 @@ function render(){
       /* '밑줄' 스타일은 배경을 칠하지 않으므로, 레벨 색은 대비용 잉크 색이 아니라
          (밝기만 보정한) 레벨 색 그대로를 글자·밑줄 색으로 쓴다 — 위 underlineTextColor() 참고. */
       const ulc=ds&&ds.c?underlineTextColor(ds.c):"";
-      if(ulc)nst+='color:'+ulc+';border-bottom-color:'+ulc+';';
+      if(ulc)nst+='border-bottom-color:'+ulc+';';
+      {const uc=(ds&&ds.tc)||ulc;if(uc)nst+='color:'+uc+';';}
       if(ds&&ds.b)nst+='filter:brightness('+(1+ds.b/100).toFixed(2)+');';
     }else{
-      if(ds&&ds.c){nst+='background-color:'+ds.c+';';const ik=levelInk(ds.c);if(ik)nst+='color:'+ik+';';}
+      if(ds&&ds.c)nst+='background-color:'+ds.c+';';
+      {const ik=levelInkOf(ds);if(ik)nst+='color:'+ik+';';}
       if(ds&&ds.b)nst+='filter:brightness('+(1+ds.b/100).toFixed(2)+');';
     }
     if(ds&&ds.sz)nst+='--ndscale:'+(1+ds.sz/100).toFixed(2)+';';
@@ -3144,7 +3218,10 @@ function render(){
     });
   });
   const rtc=$("btnResultsToCards");
-  if(rtc)rtc.classList.toggle("show",(q||mmFilterActive())&&computeMatchedNodes().length>0);
+  const bfb=$("btnBulkFmt");
+  const hasRes=!!(q||mmFilterActive())&&computeMatchedNodes().length>0;
+  if(rtc)rtc.classList.toggle("show",hasRes);
+  if(bfb)bfb.classList.toggle("show",hasRes);
 }
 
 /* ═══ 검색 ═══ */
@@ -3326,6 +3403,179 @@ $("btnResultsToCards").addEventListener("click",e=>{
   openResultsToCardsMenu(e);
 });
 
+/* ═══ 수동 인용 연결 (노드 편집 → 메모에서 드래그 → 🔗 연결) ═══
+   자동 감지가 엉뚱한 조문으로 연결했을 때(예: "제52조의2"가 "제52조"로 가는 경우) 메모의 그
+   글자 구간을 직접 드래그해서 올바른 노드를 골라 연결한다. 연결은 메모 글자 구간(lkr)으로
+   저장되고 자동 감지보다 우선한다. "링크 안 함"은 그 구간에 자동 링크가 걸리지 않게 막는다. */
+let lpPending=null;
+function nodePathText(n){
+  const parts=[];let p=findParent(model,n.id);
+  while(p&&p.id!==model.id){parts.unshift(p.text.split("\n")[0]);p=findParent(model,p.id);}
+  return parts.join(" › ");
+}
+function lpRender(){
+  const box=$("lpList");if(!box)return;
+  const f=$("lpSearch").value.trim().toLowerCase();
+  const all=[];walkAll(n=>{if(lpPending&&n.id===lpPending.nodeId)return;if(n.id===model.id)return;all.push(n);});
+  const hit=f?all.filter(n=>n.text.toLowerCase().includes(f)||nodePathText(n).toLowerCase().includes(f)):all;
+  box.innerHTML="";
+  if(!hit.length){box.innerHTML='<div style="padding:12px;color:var(--muted);font-size:13px">일치하는 노드가 없습니다</div>';return;}
+  hit.slice(0,200).forEach(n=>{
+    const b=document.createElement("button");b.type="button";b.className="lpItem";b.dataset.id=n.id;
+    b.appendChild(document.createTextNode(n.text.split("\n")[0]||"(빈 노드)"));
+    const path=nodePathText(n);
+    if(path){const sp=document.createElement("span");sp.className="lpPath";sp.textContent=path;b.appendChild(sp);}
+    b.addEventListener("click",()=>lpChoose(n));
+    box.appendChild(b);
+  });
+  if(hit.length>200){const d=document.createElement("div");d.style.cssText="padding:8px 10px;color:var(--muted);font-size:12px";d.textContent="…외 "+(hit.length-200)+"개 — 검색어를 더 입력해 좁혀보세요";box.appendChild(d);}
+}
+function openLinkPicker(){
+  const n=byId(editingId);if(!n)return;
+  const rng=nodeEditorRange();
+  if(!rng){toast("메모에서 연결할 글자를 먼저 드래그 선택하세요");return;}
+  if(rng.t!==1){toast("연결은 메모 안의 글자에서만 지정할 수 있습니다");return;}
+  const sel=String(n.note||"").slice(rng.s,rng.e);
+  lpPending={nodeId:n.id,s:rng.s,e:rng.e};
+  $("lpSel").innerHTML="";
+  $("lpSel").appendChild(document.createTextNode("선택한 글자: "));
+  const bb=document.createElement("b");bb.textContent="“"+(sel.length>40?sel.slice(0,40)+"…":sel)+"”";$("lpSel").appendChild(bb);
+  /* 선택한 글자(예: "제52조의2")를 검색어로 미리 채워 후보가 바로 보이게 한다. 후보가 하나도
+     없으면 전체 목록을 보여주도록 비워둔다. */
+  const m=articleRefRe().exec(sel);
+  const pre=m?m[0]:sel.trim();
+  $("lpSearch").value=pre;
+  lpRender();
+  if(!$("lpList").querySelector(".lpItem")){$("lpSearch").value="";lpRender();}
+  $("linkPickModal").classList.remove("hidden");
+  try{$("lpSearch").focus();$("lpSearch").select();}catch(e){}
+}
+function lpApply(fn,msg){
+  const n=lpPending?byId(lpPending.nodeId):null;
+  if(!n)return;
+  fn(n,lpPending);
+  render();markDirty();renderEditPreviews();
+  fieldUndoBump("edNote");
+  $("linkPickModal").classList.add("hidden");
+  toast(msg);
+}
+function lpChoose(t){
+  lpApply((n,r)=>{
+    if(!t.uid)t.uid=newNodeUid();
+    setLinkRange(n,{t:1,s:r.s,e:r.e,u:t.uid},true);
+  },"“"+t.text.split("\n")[0]+"”(으)로 연결했습니다");
+}
+$("lpSearch").addEventListener("input",lpRender);
+$("lpNone").addEventListener("click",()=>lpApply((n,r)=>setLinkRange(n,{t:1,s:r.s,e:r.e,u:""},true),"이 글자에는 링크가 걸리지 않게 했습니다"));
+$("lpAuto").addEventListener("click",()=>lpApply((n,r)=>setLinkRange(n,{t:1,s:r.s,e:r.e},false),"직접 지정한 연결을 지우고 자동 감지로 되돌렸습니다"));
+(()=>{
+  const btn=$("edRefLink"),keep=e=>{e.preventDefault();edSnapCap();};
+  btn.addEventListener("mousedown",keep);btn.addEventListener("pointerdown",keep);btn.addEventListener("touchstart",()=>edSnapCap(),{passive:true});
+  btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();openLinkPicker();});
+})();
+
+/* ═══ 검색·필터 단어에 서식 일괄 적용 ═══
+   검색어(q)와 확정/입력 중인 필터 단어들을 "대상 단어"로 삼아, 지금 일치한 노드들의 제목/메모
+   안에서 그 단어가 나오는 모든 곳에 형광펜·굵게·기울임·밑줄·취소선을 한꺼번에 적용/해제한다.
+   노드 전체가 아니라 단어가 나오는 글자 구간(sr/hlr 범위)에만 적용된다. */
+let bfTarget="both",bfMode="on";
+function bulkTerms(){
+  const out=[];
+  [q].concat(mmFilters,[mmFilter]).forEach(t=>{t=String(t||"").trim().toLowerCase();if(t&&!out.includes(t))out.push(t);});
+  return out;
+}
+function bulkSpans(text,terms){
+  const spans=[];
+  terms.forEach(t=>{
+    const re=new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+    let m;
+    while((m=re.exec(text))){if(!m[0].length){re.lastIndex++;continue;}spans.push([m.index,m.index+m[0].length]);}
+  });
+  return spans;
+}
+function bulkForEachSpan(fn){
+  const terms=bulkTerms();
+  let nodes=0,spots=0;
+  computeMatchedNodes().forEach(n=>{
+    let hit=false;
+    if(bfTarget!=="note")bulkSpans(n.text,terms).forEach(sp=>{fn(n,0,sp[0],sp[1]);spots++;hit=true;});
+    if(bfTarget!=="title")bulkSpans(n.note||"",terms).forEach(sp=>{fn(n,1,sp[0],sp[1]);spots++;hit=true;});
+    if(hit)nodes++;
+  });
+  return{nodes:nodes,spots:spots};
+}
+function setStyleKey(n,kind,s,e,key,on){
+  const rs=n.sr||[];
+  const any=rs.some(r=>(r.t?1:0)===kind&&r[key]&&r.e>s&&r.s<e);
+  const full=styleCovered(rs,kind,s,e,key);
+  const rng={t:kind,s:s,e:e};
+  if(on){if(!full)toggleStyleRange(n,rng,key);}
+  else if(any){if(!full)toggleStyleRange(n,rng,key);toggleStyleRange(n,rng,key);}
+}
+function bulkApply(op){
+  if(!bulkTerms().length)return;
+  const res=bulkForEachSpan((n,kind,s,e)=>{
+    if(op.hl==="clear")removeHlRange(n,{t:kind,s:s,e:e});
+    else if(op.hl)addHlRange(n,{t:kind,s:s,e:e,c:op.hl});
+    else setStyleKey(n,kind,s,e,op.key,bfMode==="on");
+  });
+  if(!res.spots){toast("서식을 적용할 단어가 없습니다");return;}
+  render();markDirty();
+  const what=op.hl==="clear"?"형광펜을 지웠습니다":op.hl?"형광펜을 적용했습니다":(op.label+(bfMode==="on"?"을 적용했습니다":"을 해제했습니다"));
+  toast(res.nodes+"개 노드, "+res.spots+"곳에 "+what+" (Ctrl+Z로 되돌릴 수 있어요)");
+  if($("ctxMenu"))openBulkFormatMenu();
+}
+function openBulkFormatMenu(e){
+  const m=ctxEl();m.innerHTML="";m.style.maxHeight="75vh";m.style.overflowY="auto";
+  const terms=bulkTerms();
+  const keepBox=(el)=>{el.addEventListener("click",ev=>ev.stopPropagation());return el;};
+  const cap=document.createElement("div");cap.className="cap";
+  const cnt=bulkForEachSpanCount();
+  cap.textContent="단어 서식 일괄 적용 · "+cnt.nodes+"개 노드 · "+cnt.spots+"곳";m.appendChild(cap);
+  const tl=document.createElement("div");tl.style.cssText="padding:2px 14px 6px;font-size:12px;color:var(--muted)";
+  tl.textContent="대상 단어: "+terms.join(", ");m.appendChild(tl);
+  const seg=(items,get,set)=>{
+    const row=document.createElement("div");row.className="bfRow";
+    items.forEach(it=>{
+      const b=document.createElement("button");b.type="button";b.textContent=it[1];
+      if(get()===it[0])b.classList.add("on");
+      b.addEventListener("click",ev=>{ev.stopPropagation();set(it[0]);openBulkFormatMenu();});
+      row.appendChild(b);
+    });
+    return row;
+  };
+  m.appendChild(seg([["both","제목+메모"],["title","제목만"],["note","메모만"]],()=>bfTarget,v=>{bfTarget=v;}));
+  m.appendChild(seg([["on","적용"],["off","해제"]],()=>bfMode,v=>{bfMode=v;}));
+  const sr=document.createElement("div");sr.className="bfRow";
+  [["b","굵게","font-weight:700"],["i","기울임","font-style:italic"],["u","밑줄","text-decoration:underline"],["x","취소선","text-decoration:line-through"]].forEach(it=>{
+    const b=document.createElement("button");b.type="button";b.textContent=it[1];b.style.cssText=it[2];
+    b.addEventListener("click",ev=>{ev.stopPropagation();bulkApply({key:it[0],label:it[1]});});
+    sr.appendChild(b);
+  });
+  m.appendChild(sr);
+  const hc=document.createElement("div");hc.className="bfRow";
+  HL_BRIGHT.concat(HL_DEEP).forEach(c=>{
+    const b=document.createElement("button");b.type="button";b.className="bfSw";b.style.background=c;b.title="형광펜 "+c;
+    b.addEventListener("click",ev=>{ev.stopPropagation();bulkApply({hl:c});});
+    hc.appendChild(b);
+  });
+  m.appendChild(hc);
+  const row2=document.createElement("div");row2.className="bfRow";
+  const clr=document.createElement("button");clr.type="button";clr.textContent="형광펜 지우기";
+  clr.addEventListener("click",ev=>{ev.stopPropagation();bulkApply({hl:"clear"});});
+  const cl=document.createElement("button");cl.type="button";cl.textContent="닫기";
+  cl.addEventListener("click",ev=>{ev.stopPropagation();closeCtxMenu();});
+  row2.appendChild(clr);row2.appendChild(cl);m.appendChild(row2);
+  if(e)placeMenu(m,e);
+}
+function bulkForEachSpanCount(){return bulkForEachSpan(()=>{});}
+$("btnBulkFmt").addEventListener("click",e=>{
+  if(!model)return;
+  if(!bulkTerms().length){toast("먼저 검색하거나 필터 단어를 입력하세요");return;}
+  e.stopPropagation();
+  openBulkFormatMenu(e);
+});
+
 /* ═══ 메모 크게 보기 ═══ */
 /* 메모 본문에서 "제33조"/"제33조의2" 같은 조문 인용을 찾아, 제목에 그 조문 번호가
    들어있는 다른 노드로 연결하는 자동 인용 링크. 조문번호→노드id 색인을 매번 새로
@@ -3346,33 +3596,53 @@ function buildArticleIndex(){
   });
   return idx;
 }
-function linkifyArticleRefsInContainer(container,selfId){
+function linkifyArticleRefsInContainer(container,selfId,manual){
   const idx=buildArticleIndex();
-  if(!idx.size)return;
+  const man=(manual||[]).filter(r=>r&&r.e>r.s);
+  if(!idx.size&&!man.length)return;
+  const uidTarget=new Map();
+  man.forEach(r=>{if(r.u&&!uidTarget.has(r.u)){const t=nodeByUid(r.u);uidTarget.set(r.u,t?t.id:null);}});
   const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT,null);
-  const textNodes=[];
-  let tn;while(tn=walker.nextNode())textNodes.push(tn);
-  textNodes.forEach(textNode=>{
-    const text=textNode.nodeValue;
+  const items=[];
+  let tn,base=0;
+  while(tn=walker.nextNode()){items.push({tn:tn,base:base});base+=tn.nodeValue.length;}
+  items.forEach(({tn,base})=>{
+    const text=tn.nodeValue;
     if(!text)return;
+    /* 사용자가 직접 지정한 연결(수동)이 자동 감지보다 우선한다. 수동 구간 안의 문구는 자동
+       링크 후보에서 빼고, 대상이 비어 있는 수동 구간("링크 안 함")은 그냥 일반 글자로 남긴다. */
+    const marks=[];
+    man.forEach(r=>{
+      const s0=Math.max(r.s,base),e0=Math.min(r.e,base+text.length);
+      if(e0<=s0)return;
+      const id=r.u?uidTarget.get(r.u):null;
+      if(id&&id!==selfId)marks.push({s:s0-base,e:e0-base,id:id,man:true});
+    });
     const re=articleRefRe();
-    let m,last=0,matched=false;
-    const frag=document.createDocumentFragment();
+    let m;
     while((m=re.exec(text))){
-      const targetId=idx.get(articleKey(m[1],m[2]));
-      if(!targetId||targetId===selfId)continue;
-      matched=true;
-      if(m.index>last)frag.appendChild(document.createTextNode(text.slice(last,m.index)));
-      const span=document.createElement("span");
-      span.className="artRef";
-      span.dataset.nodeid=targetId;
-      span.textContent=m[0];
-      frag.appendChild(span);
-      last=m.index+m[0].length;
+      const as=base+m.index,ae=as+m[0].length;
+      if(man.some(r=>r.s<ae&&r.e>as))continue;
+      const id=idx.get(articleKey(m[1],m[2]));
+      if(!id||id===selfId)continue;
+      marks.push({s:m.index,e:m.index+m[0].length,id:id,man:false});
     }
-    if(!matched)return;
+    if(!marks.length)return;
+    marks.sort((a2,b2)=>a2.s-b2.s);
+    const frag=document.createDocumentFragment();
+    let last=0;
+    marks.forEach(mk2=>{
+      if(mk2.s<last)return;
+      if(mk2.s>last)frag.appendChild(document.createTextNode(text.slice(last,mk2.s)));
+      const span=document.createElement("span");
+      span.className="artRef"+(mk2.man?" man":"");
+      span.dataset.nodeid=mk2.id;
+      span.textContent=text.slice(mk2.s,mk2.e);
+      frag.appendChild(span);
+      last=mk2.e;
+    });
     if(last<text.length)frag.appendChild(document.createTextNode(text.slice(last)));
-    textNode.parentNode.replaceChild(frag,textNode);
+    tn.parentNode.replaceChild(frag,tn);
   });
 }
 let nmHistory=[],nmCurrentId=null;
@@ -3380,7 +3650,7 @@ function nmShow(n){
   nmCurrentId=n.id;
   $("nmTitle").textContent=n.text;
   $("nmText").innerHTML=n.note?richRangeHtml(n.note,1,n.hlr,n.sr,null):previewEmpty("메모가 없습니다");
-  linkifyArticleRefsInContainer($("nmText"),n.id);
+  linkifyArticleRefsInContainer($("nmText"),n.id,(n.lkr||[]).filter(r=>r.t));
   $("nmBack").classList.toggle("hidden",!nmHistory.length);
 }
 function nmNavigateTo(n){
@@ -4341,7 +4611,7 @@ function nodePaste(tid){
     tgt.folded=false;
     mmClipList.forEach(src=>{
       const c=JSON.parse(JSON.stringify(src));
-      (function reg(x){x.id="n"+(seq++);x.children.forEach(reg);})(c);
+      (function reg(x){x.id="n"+(seq++);x.uid="";x.children.forEach(reg);})(c);
       c.folded=false;tgt.children.push(c);
     });
     const cnt=mmClipList.length;
@@ -5119,7 +5389,8 @@ function diagNodeHtml(item,offX,offY){
   const dc=item.depth===0?"d0":item.depth===1?"d1":item.depth===2?"d2":"d3";
   const ds=(prefs.depthStyles||[])[Math.min(item.depth,7)];
   let st="left:"+px+"px;top:"+py+"px;width:"+DIAG_NODE_W+"px;";
-  if(ds&&ds.c){st+="background:"+ds.c+";";const ik=levelInk(ds.c);if(ik)st+="color:"+ik+";";}
+  if(ds&&ds.c)st+="background:"+ds.c+";";
+  {const ik=levelInkOf(ds);if(ik)st+="color:"+ik+";";}
   const toggle=item.hasKids?'<span class="dgToggle" data-id="'+n.id+'">'+(item.collapsed?"+":"−")+"</span>":"";
   let html='<div class="dgNode '+dc+'" data-id="'+n.id+'" style="'+st+'" title="'+escA(n.text||"")+'">'+toggle+richRangeHtml(n.text,0,n.hlr,n.sr,n)+"</div>";
   item.children.forEach(c=>html+=diagNodeHtml(c,offX,offY));
@@ -5251,6 +5522,7 @@ $("diagTableWrap").addEventListener("click",e=>{
    똑같은 우선순위로 이걸 그대로 재사용한다: 메모/카드편집/노드편집처럼 별도 정리가 필요한
    모달을 먼저 확인하고, 그 다음 일반 .overlay, 그 다음 우클릭 메뉴, 마지막으로 더보기 메뉴. */
 function closeTopOverlayOrMenu(){
+  if(!$("linkPickModal").classList.contains("hidden")){$("linkPickModal").classList.add("hidden");return true;}
   /* 편집창은 메모 팝업 위에서 열릴 수 있으므로(팝업의 ✏ 편집) 메모 팝업보다 먼저 닫는다. */
   if(!$("fcCardModal").classList.contains("hidden")){closeFcEdit();return true;}
   if(!$("editModal").classList.contains("hidden")){closeEdit();return true;}
@@ -5533,7 +5805,7 @@ $("menu").addEventListener("click",e=>{
   if(act==="save-as")saveMapAs();
   if(act==="drive-open")openDriveModal("map");
   if(act==="save-prefs-html")savePrefsHtml();
-  if(act==="reset-prefs"){prefs.themePreset="";prefs.depthStyles=prefs.depthStyles.map(()=>({c:"",b:0,sz:0}));savePrefs();try{renderDepthUI();renderDepthPreview();}catch(e){}render();toast("색감·스타일 설정을 초기화했습니다");}
+  if(act==="reset-prefs")resetThemePrefs();
 
   if(act==="expand"){walkAll(n=>{n.folded=false;});render();}
   if(act==="collapse"){collapseAll();render();window.scrollTo(0,0);}
@@ -7633,7 +7905,7 @@ $("fcMenu").addEventListener("click",e=>{
   }
   if(act==="fc-save-as")saveFcAs();
   if(act==="save-prefs-html")savePrefsHtml();
-  if(act==="reset-prefs"){prefs.themePreset="";prefs.depthStyles=prefs.depthStyles.map(()=>({c:"",b:0,sz:0}));savePrefs();try{renderDepthUI();renderDepthPreview();}catch(e){}render();toast("색감·스타일 설정을 초기화했습니다");}
+  if(act==="reset-prefs")resetThemePrefs();
 
   if(act==="fc-view-list"){fcView="list";fcRender();}
   if(act==="fc-view-study"){fcView="study";fcRender();}
