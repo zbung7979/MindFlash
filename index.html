@@ -356,6 +356,13 @@ main{padding:8px 0 90px}
 .card textarea{min-height:96px;resize:vertical;line-height:1.6}
 .noteView{font-size:calc(var(--fs) + 1px);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;
   background:var(--note-bg);border-left:3px solid var(--note-bar);border-radius:0 10px 10px 0;padding:12px 14px}
+/* 메모 본문 중 "제33조"처럼 다른 조문을 가리키는 문구를 자동으로 찾아 링크로 보여준다
+   (linkifyArticleRefsInContainer). 실제 <a>가 아니라 클릭을 가로채는 span이라 href
+   미리보기 같은 기본 동작은 없고, 밑줄+포인터로만 "누를 수 있다"는 걸 알린다. */
+.noteView .artRef{color:var(--chev);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer}
+.noteView .artRef:hover{background:rgba(92,130,196,.16);border-radius:3px}
+#nmBack{margin-right:6px}
+#nmBack.hidden{display:none}
 /* ── 노드 편집: 편집과 미리보기를 한 화면에 합친 실시간 서식 입력창 ──
    실제 입력은 투명한 textarea가 그대로 받고(한글 IME 안전), 그 아래 겹친
    div가 굵게/기울임/형광펜 등 서식이 적용된 결과를 실시간으로 보여준다. */
@@ -951,7 +958,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 
 <div id="noteModal" class="overlay hidden">
   <div class="card">
-    <header><span id="nmTitle"></span><button data-close>닫기</button></header>
+    <header><button id="nmBack" class="hidden" title="이전 조문으로">← 뒤로</button><span id="nmTitle"></span><button data-close>닫기</button></header>
     <div class="body"><div id="nmText" class="noteView"></div></div>
   </div>
 </div>
@@ -3319,16 +3326,91 @@ $("btnResultsToCards").addEventListener("click",e=>{
 });
 
 /* ═══ 메모 크게 보기 ═══ */
+/* 메모 본문에서 "제33조"/"제33조의2" 같은 조문 인용을 찾아, 제목에 그 조문 번호가
+   들어있는 다른 노드로 연결하는 자동 인용 링크. 조문번호→노드id 색인을 매번 새로
+   만들고(조문은 몇십~몇백 개 수준이라 비용이 미미하다), richRangeHtml이 만든
+   <mark>/<span> 태그를 절대 깨뜨리지 않도록 문자열 치환이 아니라 TreeWalker로
+   텍스트 노드만 찾아 쪼갠다. */
+function articleKey(numStr,subStr){return subStr?(numStr+"-"+subStr):String(numStr);}
+function articleRefRe(){return /제\s*(\d{1,4})\s*조(?:\s*의\s*(\d{1,3}))?/g;}
+function buildArticleIndex(){
+  const idx=new Map();
+  const re=articleRefRe();
+  walkAll(n=>{
+    re.lastIndex=0;
+    const m=re.exec(n.text||"");
+    if(!m)return;
+    const key=articleKey(m[1],m[2]);
+    if(!idx.has(key))idx.set(key,n.id);
+  });
+  return idx;
+}
+function linkifyArticleRefsInContainer(container,selfId){
+  const idx=buildArticleIndex();
+  if(!idx.size)return;
+  const walker=document.createTreeWalker(container,NodeFilter.SHOW_TEXT,null);
+  const textNodes=[];
+  let tn;while(tn=walker.nextNode())textNodes.push(tn);
+  textNodes.forEach(textNode=>{
+    const text=textNode.nodeValue;
+    if(!text)return;
+    const re=articleRefRe();
+    let m,last=0,matched=false;
+    const frag=document.createDocumentFragment();
+    while((m=re.exec(text))){
+      const targetId=idx.get(articleKey(m[1],m[2]));
+      if(!targetId||targetId===selfId)continue;
+      matched=true;
+      if(m.index>last)frag.appendChild(document.createTextNode(text.slice(last,m.index)));
+      const span=document.createElement("span");
+      span.className="artRef";
+      span.dataset.nodeid=targetId;
+      span.textContent=m[0];
+      frag.appendChild(span);
+      last=m.index+m[0].length;
+    }
+    if(!matched)return;
+    if(last<text.length)frag.appendChild(document.createTextNode(text.slice(last)));
+    textNode.parentNode.replaceChild(frag,textNode);
+  });
+}
+let nmHistory=[],nmCurrentId=null;
+function nmShow(n){
+  nmCurrentId=n.id;
+  $("nmTitle").textContent=n.text;
+  $("nmText").innerHTML=n.note?richRangeHtml(n.note,1,n.hlr,n.sr,null):previewEmpty("메모가 없습니다");
+  linkifyArticleRefsInContainer($("nmText"),n.id);
+  $("nmBack").classList.toggle("hidden",!nmHistory.length);
+}
+function nmNavigateTo(n){
+  if(!n||n.id===nmCurrentId)return;
+  const cur=byId(nmCurrentId);
+  nmHistory.push(cur?cur.id:nmCurrentId);
+  nmShow(n);
+}
+function nmGoBack(){
+  if(!nmHistory.length)return;
+  const prev=byId(nmHistory.pop());
+  if(prev)nmShow(prev);
+}
 function closeNoteModal(){$("noteModal").classList.add("hidden");}
 function openNoteModal(n){
-  $("nmTitle").textContent=n.text;
-  $("nmText").innerHTML=richRangeHtml(n.note,1,n.hlr,n.sr,null);
+  nmHistory=[];
+  nmShow(n);
   $("noteModal").classList.remove("hidden");
 }
 function showNodeNote(n){
   if(n.note)openNoteModal(n);
   else toast("메모가 없습니다 — 연필 아이콘(편집)에서 추가할 수 있어요");
 }
+$("nmBack").addEventListener("click",e=>{e.stopPropagation();nmGoBack();});
+$("nmText").addEventListener("click",e=>{
+  const ref=e.target.closest(".artRef");
+  if(!ref)return;
+  e.stopPropagation();
+  const n=byId(ref.dataset.nodeid);
+  if(n)nmNavigateTo(n);
+});
 
 /* ═══ 편집창 이모지 ═══ */
 const DEF_EMOJIS=["⭐","▶️","🟩","🌈","🚩","☝️","👉","👇"];
