@@ -203,6 +203,8 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 #ttsWrap{flex:1;min-width:0;display:flex;flex-direction:column}
 #ttsText{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #ttsMeta{font-size:11.5px;color:var(--muted)}
+#ttsCfg{border:1px solid var(--line);background:none;color:inherit;border-radius:8px;width:34px;height:30px;font-size:14px;cursor:pointer;padding:0}
+#ttdVoice{width:100%;font:inherit;font-size:13.5px;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--c0t)}
 #ttsVoice,#ttsRate{max-width:140px;font:inherit;font-size:12px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:inherit}
 .row.speaking .ncard{box-shadow:0 0 0 2px var(--chev);filter:brightness(1.07)}
 @media(max-width:640px){#ttsVoice{max-width:88px}#ttsRate{max-width:62px}}
@@ -1492,10 +1494,41 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <button id="ttsPrev" title="이전 노드">⏮</button>
   <button id="ttsNext" title="다음 노드">⏭</button>
   <span id="ttsWrap"><span id="ttsText"></span><span id="ttsMeta"></span></span>
+  <button id="ttsCfg" title="읽기 설정(성우·속도 등)">⚙</button>
   <select id="ttsVoice" title="음성"></select>
   <select id="ttsRate" title="배속">
     <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
   </select>
+</div>
+
+<div id="ttsDlg" class="overlay hidden">
+  <div class="card">
+    <header><span id="ttdTitle">읽기 설정</span><button data-close>닫기</button></header>
+    <div class="body">
+      <div id="ttdNodeOpts">
+        <label>읽을 범위</label>
+        <div class="seg" id="ttdScope"><button type="button" data-v="down">여기부터 아래로 전부</button><button type="button" data-v="sub">이 노드와 하위만</button></div>
+        <label>읽을 내용</label>
+        <div class="seg" id="ttdContent"><button type="button" data-v="both">노드 + 메모</button><button type="button" data-v="title">노드만</button><button type="button" data-v="note">메모만</button></div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;letter-spacing:0;color:var(--c0t)"><input type="checkbox" id="ttdMemoLabel"> 메모 앞에 "메모"라고 말하기</label>
+      </div>
+      <label>성우(음성)</label>
+      <select id="ttdVoice"></select>
+      <label>속도 <span id="ttdRateV" style="font-weight:500;letter-spacing:0"></span></label>
+      <input type="range" id="ttdRate" min="0.5" max="2.5" step="0.05">
+      <label>높낮이 <span id="ttdPitchV" style="font-weight:500;letter-spacing:0"></span></label>
+      <input type="range" id="ttdPitch" min="0.5" max="1.5" step="0.05">
+      <label>음량 <span id="ttdVolV" style="font-weight:500;letter-spacing:0"></span></label>
+      <input type="range" id="ttdVol" min="0.1" max="1" step="0.05">
+      <label>재생 방식</label>
+      <div class="seg" id="ttdEngine"><button type="button" data-v="auto">자동</button><button type="button" data-v="speech">기기 음성(성우 선택)</button><button type="button" data-v="audio">배경 재생</button></div>
+      <p class="phint" id="ttdEngineHint"></p>
+      <div class="lpBtns">
+        <button type="button" id="ttdPreview">🔈 미리듣기</button>
+        <button type="button" id="ttdGo" style="border-color:var(--chev);font-weight:700">▶ 읽기 시작</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="toast" hidden></div>
@@ -4835,19 +4868,43 @@ function ttsPopulateVoices(){
 try{speechSynthesis.onvoiceschanged=ttsPopulateVoices;}catch(e){}
 ttsPopulateVoices();
 $("ttsRate").value=String(prefs.ttsRate||1);
-function ttsDocList(){const out=[];walkAll(n=>{if(n.text&&n.text.trim())out.push({kind:"node",text:n.text,say:n.text,ref:n.id});});return out;}
+/* 읽기 설정(prefs에 저장): 성우(ttsVoice)·속도(ttsRate)·높낮이(ttsPitch)·음량(ttsVol)·재생 방식
+   (ttsEngine: auto/speech/audio)·범위(ttsScope: down/sub)·내용(ttsContent: both/title/note)·
+   메모 앞에 "메모" 말하기(ttsMemoLabel). */
+function ttsCfg(){
+  return{
+    rate:+prefs.ttsRate||1,
+    pitch:isFinite(prefs.ttsPitch)&&prefs.ttsPitch>0?+prefs.ttsPitch:1,
+    vol:isFinite(prefs.ttsVol)&&prefs.ttsVol>0?+prefs.ttsVol:1,
+    engine:prefs.ttsEngine||"auto",
+    scope:prefs.ttsScope==="sub"?"sub":"down",
+    content:["title","note"].includes(prefs.ttsContent)?prefs.ttsContent:"both",
+    memoLabel:prefs.ttsMemoLabel!==false
+  };
+}
+/* 읽을 목록: 노드 제목과 메모를 각각 하나의 항목으로 만든다(메모는 제목 바로 다음). */
+function ttsBuildNodeQueue(startNode,scope,content,memoLabel){
+  const out=[];
+  const emit=n=>{
+    if(content!=="note"&&n.text&&n.text.trim())out.push({kind:"node",part:"title",text:n.text,say:n.text,ref:n.id});
+    if(content!=="title"&&n.note&&n.note.trim())out.push({kind:"node",part:"note",text:"메모 · "+n.note.replace(/\s+/g," ").trim(),say:(memoLabel?"메모. ":"")+n.note,ref:n.id});
+  };
+  if(scope==="sub"){(function rec(n){emit(n);n.children.forEach(rec);})(startNode);}
+  else{let on=false;walkAll(n=>{if(n.id===startNode.id)on=true;if(on)emit(n);});}
+  return out;
+}
 function ttsBegin(queue){
   if(!("speechSynthesis" in window)){toast("이 브라우저는 음성 읽기를 지원하지 않습니다");return;}
   try{speechSynthesis.cancel();}catch(e){}
   ttsQueue=queue;ttsIdx=0;ttsActive=true;ttsPaused=false;ttsGen++;
-  if(!ttsQueue.length){toast("읽을 내용이 없습니다");return;}
+  if(!ttsQueue.length){ttsActive=false;toast("읽을 내용이 없습니다");return;}
   ttsPopulateVoices();
   $("ttsBar").classList.remove("hidden");
   $("ttsPlay").textContent="⏸";
   ttsKeepAlivePlay();
   ttsSpeakCurrent();
 }
-function ttsStart(n){const all=ttsDocList();const i=all.findIndex(x=>x.ref===n.id);ttsBegin(i>=0?all.slice(i):all);}
+function ttsStart(n){const c=ttsCfg();ttsBegin(ttsBuildNodeQueue(n,c.scope,c.content,c.memoLabel));}
 function ttsStartCard(i){
   if(!deck)return;
   const q=[];
@@ -4859,19 +4916,20 @@ function ttsStartCard(i){
   ttsBegin(q);
 }
 let ttsAudio=null;
-function ttsChunks(t){
+function ttsChunks(t,max){
+  max=max||180;
   const src=String(t||"").trim();if(!src)return [];
   const out=[];let cur="";
   const parts=src.split(/(?<=[.!?])\s+|\n+/);
   for(const p of parts){
-    if((cur+" "+p).trim().length>180){if(cur.trim())out.push(cur.trim());cur=p;}
+    if((cur+" "+p).trim().length>max){if(cur.trim())out.push(cur.trim());cur=p;}
     else cur=(cur?cur+" ":"")+p;
-    while(cur.length>190){out.push(cur.slice(0,190).trim());cur=cur.slice(190);}
+    while(cur.length>max+10){out.push(cur.slice(0,max+10).trim());cur=cur.slice(max+10);}
   }
   if(cur.trim())out.push(cur.trim());
   return out;
 }
-function ttsEngineAudio(){try{if(matchMedia("(pointer:coarse)").matches)return true;}catch(e){}return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||!!window.__TTS_FORCE_AUDIO;}
+function ttsEngineAudio(){if(prefs.ttsEngine==="audio")return true;if(prefs.ttsEngine==="speech")return false;try{if(matchMedia("(pointer:coarse)").matches)return true;}catch(e){}return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)||!!window.__TTS_FORCE_AUDIO;}
 function ttsAudioMode(){return ("Audio" in window)&&ttsEngineAudio();}
 function ttsSpeakItemAudio(item,gen){
   const chunks=ttsChunks(item.say);
@@ -4884,7 +4942,7 @@ function ttsSpeakItemAudio(item,gen){
     const a=ttsAudio;
     a.onended=null;a.onerror=null;
     a.src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q="+encodeURIComponent(chunks[ci]);
-    try{a.playbackRate=Math.min(2.5,Math.max(0.5,prefs.ttsRate||1));}catch(e){}
+    try{a.playbackRate=Math.min(2.5,Math.max(0.5,prefs.ttsRate||1));a.volume=ttsCfg().vol;}catch(e){}
     a.onended=()=>{ci++;playNext();};
     a.onerror=()=>{if(!ttsActive||gen!==ttsGen)return;toast("배경 재생 대신 기본 음성으로 읽습니다");ttsSpeakItemSpeech(item,gen);};
     try{
@@ -4896,22 +4954,32 @@ function ttsSpeakItemAudio(item,gen){
   playNext();
 }
 function ttsSpeakItemSpeech(item,gen){
-  const u=new SpeechSynthesisUtterance(item.say);
   const vs=ttsVoices();
   const vn=prefs.ttsVoice||(vs.filter(v=>/^ko/i.test(v.lang||""))[0]||{}).name;
   const v=vs.find(x=>x.name===vn);
-  if(v){u.voice=v;u.lang=v.lang;}else u.lang="ko-KR";
-  u.rate=prefs.ttsRate||1;
-  u.onend=()=>{if(!ttsActive||gen!==ttsGen)return;ttsIdx++;ttsSpeakCurrent();};
-  u.onerror=()=>{if(!ttsActive||gen!==ttsGen)return;ttsIdx++;ttsSpeakCurrent();};
-  try{speechSynthesis.speak(u);}catch(e){ttsStop();}
+  const cfg=ttsCfg();
+  /* 긴 메모를 한 번에 읽히면 일부 음성은 중간에서 끊기므로 문장 단위로 나눠 차례로 읽는다. */
+  const chunks=ttsChunks(item.say,220);
+  if(!chunks.length){ttsIdx++;ttsSpeakCurrent();return;}
+  let ci=0;
+  const next=()=>{
+    if(!ttsActive||gen!==ttsGen)return;
+    if(ci>=chunks.length){ttsIdx++;ttsSpeakCurrent();return;}
+    const u=new SpeechSynthesisUtterance(chunks[ci]);
+    if(v){u.voice=v;u.lang=v.lang;}else u.lang="ko-KR";
+    u.rate=cfg.rate;u.pitch=cfg.pitch;u.volume=cfg.vol;
+    u.onend=()=>{ci++;next();};
+    u.onerror=()=>{if(!ttsActive||gen!==ttsGen)return;ci++;next();};
+    try{speechSynthesis.speak(u);}catch(e){ttsStop();}
+  };
+  next();
 }
 function ttsSpeakCurrent(){
   if(!ttsActive)return;
   if(ttsIdx>=ttsQueue.length){ttsStop();return;}
   const n=ttsQueue[ttsIdx];
   $("ttsText").textContent=n.text;
-  $("ttsMeta").textContent=(n.kind==="card"?"카드 ":"")+(ttsIdx+1)+" / "+ttsQueue.length+" · "+(ttsAudioMode()?"배경 재생":"음성 합성");
+  $("ttsMeta").textContent=(n.kind==="card"?"카드 ":n.part==="note"?"메모 ":"")+(ttsIdx+1)+" / "+ttsQueue.length+" · "+(ttsAudioMode()?"배경 재생":"음성 합성");
   document.querySelectorAll(".row.speaking,.fitem.speaking").forEach(x=>x.classList.remove("speaking"));
   const el=document.querySelector(n.kind==="card"?'.fitem[data-i="'+n.ref+'"]':'.row[data-id="'+n.ref+'"]');
   if(el){el.classList.add("speaking");if(el.scrollIntoView)try{el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}}
@@ -4928,7 +4996,7 @@ function ttsJump(dir){
 }
 function ttsPauseToggle(){
   if(!ttsActive)return;
-  const st=s=>{const n=ttsQueue[ttsIdx]||{};return (n.kind==="card"?"카드 ":"")+(ttsIdx+1)+" / "+ttsQueue.length+" · "+s;};
+  const st=s=>{const n=ttsQueue[ttsIdx]||{};return (n.kind==="card"?"카드 ":n.part==="note"?"메모 ":"")+(ttsIdx+1)+" / "+ttsQueue.length+" · "+s;};
   if(ttsAudioMode()&&ttsAudio){
     if(ttsPaused){ttsAudio.play();ttsPaused=false;$("ttsPlay").textContent="⏸";$("ttsMeta").textContent=st("재생 중");}
     else{ttsAudio.pause();ttsPaused=true;$("ttsPlay").textContent="▶";$("ttsMeta").textContent=st("일시정지");}
@@ -4963,6 +5031,95 @@ $("ttsNext").addEventListener("click",()=>ttsJump(1));
 $("ttsPrev").addEventListener("click",()=>ttsJump(-1));
 $("ttsVoice").addEventListener("change",()=>{prefs.ttsVoice=$("ttsVoice").value;savePrefs();if(ttsActive){ttsGen++;try{speechSynthesis.cancel();}catch(e){}ttsSpeakCurrent();}});
 $("ttsRate").addEventListener("change",()=>{prefs.ttsRate=+$("ttsRate").value||1;savePrefs();if(ttsActive){ttsGen++;try{speechSynthesis.cancel();}catch(e){}ttsSpeakCurrent();}});
+
+/* ═══ 읽기 설정 창: "아래로 읽기"를 고르면 먼저 이 창이 떠서 범위·내용·성우·속도 등을 정하고 시작한다 ═══ */
+let ttdCtx=null;
+function ttsRestartCurrent(){if(!ttsActive)return;ttsGen++;try{speechSynthesis.cancel();}catch(e){}try{if(ttsAudio){ttsAudio.onended=null;ttsAudio.onerror=null;ttsAudio.pause();}}catch(e){}ttsPaused=false;$("ttsPlay").textContent="⏸";ttsSpeakCurrent();}
+function ttdSyncBar(){
+  const r=$("ttsRate");
+  const v=String(+prefs.ttsRate||1);
+  if(![...r.options].some(o=>o.value===v)){const o=document.createElement("option");o.value=v;o.textContent=(+v).toFixed(2).replace(/0$/,"")+"×";r.appendChild(o);}
+  r.value=v;
+  const vo=$("ttsVoice");if(prefs.ttsVoice&&[...vo.options].some(o=>o.value===prefs.ttsVoice))vo.value=prefs.ttsVoice;
+}
+function ttdRender(){
+  const c=ttsCfg(),live=ttdCtx&&ttdCtx.kind==="live",isNode=ttdCtx&&ttdCtx.kind==="node";
+  $("ttdNodeOpts").style.display=isNode?"":"none";
+  $("ttdTitle").textContent=live?"읽기 설정":"읽기 설정 · 아래로 읽기";
+  $("ttdGo").textContent=live?"닫기":"▶ 읽기 시작";
+  $("ttdPreview").style.display=live?"none":"";
+  const mark=(id,val)=>document.querySelectorAll("#"+id+" button").forEach(b=>b.classList.toggle("on",b.dataset.v===val));
+  mark("ttdScope",c.scope);mark("ttdContent",c.content);mark("ttdEngine",c.engine);
+  $("ttdMemoLabel").checked=c.memoLabel;
+  $("ttdRate").value=c.rate;$("ttdRateV").textContent=c.rate.toFixed(2).replace(/0$/,"")+"×";
+  $("ttdPitch").value=c.pitch;$("ttdPitchV").textContent=c.pitch.toFixed(2).replace(/0$/,"");
+  $("ttdVol").value=c.vol;$("ttdVolV").textContent=Math.round(c.vol*100)+"%";
+  /* 성우 목록 */
+  const sel=$("ttdVoice"),vs=ttsVoices();
+  sel.innerHTML="";
+  if(!vs.length){const o=document.createElement("option");o.value="";o.textContent="기본 음성";sel.appendChild(o);}
+  else{
+    const ko=vs.filter(v=>/^ko/i.test(v.lang||"")),rest=vs.filter(v=>!/^ko/i.test(v.lang||""));
+    ko.concat(rest).forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=v.name+" ("+v.lang+")";sel.appendChild(o);});
+    if(prefs.ttsVoice&&vs.some(v=>v.name===prefs.ttsVoice))sel.value=prefs.ttsVoice;else if(ko[0])sel.value=ko[0].name;
+  }
+  const audio=ttsAudioMode();
+  sel.disabled=audio||!vs.length;
+  $("ttdEngineHint").textContent=audio
+    ?"지금은 '배경 재생' 방식이라 성우를 고를 수 없고(목소리 고정), 화면이 꺼져도 계속 읽습니다. 성우를 고르려면 '기기 음성'을 선택하세요."
+    :"'기기 음성'은 이 기기에 설치된 성우를 고를 수 있습니다. 모바일에서 화면을 꺼도 계속 듣고 싶다면 '배경 재생'을 선택하세요.";
+}
+function openTtsDialog(ctx){
+  ttdCtx=ctx;
+  ttdRender();
+  $("ttsDlg").classList.remove("hidden");
+}
+function ttdSet(key,val,live){
+  prefs[key]=val;savePrefs();ttdSyncBar();
+  if(live&&ttsActive)ttsRestartCurrent();
+}
+document.querySelectorAll("#ttdScope button").forEach(b=>b.addEventListener("click",()=>{ttdSet("ttsScope",b.dataset.v);ttdRender();}));
+document.querySelectorAll("#ttdContent button").forEach(b=>b.addEventListener("click",()=>{ttdSet("ttsContent",b.dataset.v);ttdRender();}));
+document.querySelectorAll("#ttdEngine button").forEach(b=>b.addEventListener("click",()=>{ttdSet("ttsEngine",b.dataset.v,true);ttdRender();}));
+$("ttdMemoLabel").addEventListener("change",()=>ttdSet("ttsMemoLabel",$("ttdMemoLabel").checked));
+$("ttdVoice").addEventListener("change",()=>{ttdSet("ttsVoice",$("ttdVoice").value,true);});
+$("ttdRate").addEventListener("input",()=>{$("ttdRateV").textContent=(+$("ttdRate").value).toFixed(2).replace(/0$/,"")+"×";});
+$("ttdRate").addEventListener("change",()=>ttdSet("ttsRate",+$("ttdRate").value||1,true));
+$("ttdPitch").addEventListener("input",()=>{$("ttdPitchV").textContent=(+$("ttdPitch").value).toFixed(2).replace(/0$/,"");});
+$("ttdPitch").addEventListener("change",()=>ttdSet("ttsPitch",+$("ttdPitch").value||1,true));
+$("ttdVol").addEventListener("input",()=>{$("ttdVolV").textContent=Math.round($("ttdVol").value*100)+"%";});
+$("ttdVol").addEventListener("change",()=>ttdSet("ttsVol",+$("ttdVol").value||1,true));
+function ttdPreview(){
+  if(ttsActive)ttsStop();
+  const text="안녕하세요. 선택한 목소리와 속도로 읽어드립니다.";
+  const cfg=ttsCfg();
+  try{speechSynthesis.cancel();}catch(e){}
+  if(ttsAudioMode()){
+    try{
+      if(!ttsAudio)ttsAudio=new Audio();
+      ttsAudio.onended=null;ttsAudio.onerror=null;
+      ttsAudio.src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q="+encodeURIComponent(text);
+      ttsAudio.playbackRate=Math.min(2.5,Math.max(0.5,cfg.rate));ttsAudio.volume=cfg.vol;
+      const pr=ttsAudio.play();if(pr&&pr.catch)pr.catch(()=>toast("미리듣기를 재생하지 못했습니다"));
+    }catch(e){}
+    return;
+  }
+  const u=new SpeechSynthesisUtterance(text);
+  const vs=ttsVoices(),v=vs.find(x=>x.name===$("ttdVoice").value);
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang="ko-KR";
+  u.rate=cfg.rate;u.pitch=cfg.pitch;u.volume=cfg.vol;
+  try{speechSynthesis.speak(u);}catch(e){}
+}
+$("ttdPreview").addEventListener("click",ttdPreview);
+$("ttdGo").addEventListener("click",()=>{
+  const ctx=ttdCtx;
+  try{speechSynthesis.cancel();}catch(e){}
+  $("ttsDlg").classList.add("hidden");
+  if(!ctx||ctx.kind==="live")return;
+  if(ctx.kind==="node"){const n=byId(ctx.id);if(n)ttsStart(n);}
+  else if(ctx.kind==="card")ttsStartCard(ctx.i);
+});
+$("ttsCfg").addEventListener("click",()=>openTtsDialog({kind:"live"}));
 
 /* ═══ 우클릭 메뉴 ═══ */
 let mmClip=null;
@@ -5270,7 +5427,7 @@ const ctxDefs={
     {cap:"활용"},
     ["카드로 변환",(t1,t2,e3)=>openCardTypeMenu(t1,e3,"single"),"sub"],
     ["하위 전체를 카드로",(t1,t2,e3)=>openCardTypeMenu(t1,e3,"subtree"),"sub"],
-    ["아래로 읽기",(tid)=>{const n=byId(tid);if(n)ttsStart(n);}],
+    ["아래로 읽기",(tid)=>{const n=byId(tid);if(n)openTtsDialog({kind:"node",id:n.id});}],
     {hr:1},
     ["삭제",(tid)=>{const n=byId(tid);if(!n)return;if(n.id===model.id){toast("루트 노드는 삭제할 수 없습니다");return;}const sp=findParent(model,n.id);if(!sp)return;sp.children.splice(sp.children.indexOf(n),1);render();markDirty();toast("노드를 삭제했습니다");},"danger"],
     ["닫기",()=>{}]
@@ -5287,7 +5444,7 @@ const ctxDefs={
     {hr:1},
     {cap:"보기·스타일"},
     ["카드 스타일 변경",(t1,ti,e3)=>{if(deck&&ti>=0)openFcStyleMenu(ti,e3);},"sub"],
-    ["아래로 읽기",(t1,ti)=>{if(deck&&ti>=0)ttsStartCard(ti);} ],
+    ["아래로 읽기",(t1,ti)=>{if(deck&&ti>=0)openTtsDialog({kind:"card",i:ti});} ],
     {hr:1},
     ["삭제",(t1,ti)=>{if(deck&&ti>=0)fcDeleteCards(fcSelSet.size>1&&fcSelSet.has(ti)?[...fcSelSet]:[ti]);},"danger"],
     ["닫기",()=>{}]
