@@ -117,6 +117,11 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 .hlseg{border-radius:2px;color:inherit}
 #depthPreview{margin-top:8px;border:1px dashed var(--line);border-radius:10px;padding:9px 10px;background:var(--panel)}
 #depthPreview .dpv{display:inline-block;min-width:118px;padding:5px 9px;border-radius:9px;font-size:12.5px;margin:3px 0;border:1px solid var(--line);background:var(--bg);color:var(--c0t)}
+.themeTabs{flex-wrap:nowrap;margin-bottom:4px}
+.themeTabs button{flex:1;padding:8px 4px;font-size:12.5px;white-space:nowrap}
+.tpane{display:none;flex-direction:column;gap:6px}
+.tpane.on{display:flex}
+#hueSeg button{padding:6px 10px;font-size:12.5px}
 .themeRow{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
 .themeRow button{border:1px solid var(--line);border-radius:9px;padding:6px 10px;font:inherit;font-size:12.5px;background:var(--bg);color:var(--c0t);cursor:pointer}
 .themeRow button.on{border-color:var(--chev);font-weight:700}
@@ -154,10 +159,18 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 .ncard.sh-leaf{border-radius:4px 20px 4px 20px}
 .shGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 14px 2px}
 /* 테마 창 안의 "노드 스타일 변경" 구획 — 예전 우클릭 메뉴에서 옮겨온 것 */
+#nodeStyleBox .nsScopeRow{margin:8px 0 4px}
+#nodeStyleBox .nsScopeLab{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:3px}
+#nodeStyleBox .nsG{border:1px solid var(--line);border-radius:10px;margin-top:6px;overflow:hidden}
+#nodeStyleBox .nsGH{display:flex;align-items:center;justify-content:space-between;width:100%;background:var(--panel);color:var(--c0t);border:0;padding:10px 12px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;text-align:left}
+#nodeStyleBox .nsGH i{font-style:normal;color:var(--muted);transition:transform .15s}
+#nodeStyleBox .nsG.open .nsGH i{transform:rotate(180deg)}
+#nodeStyleBox .nsGB{display:none;padding:2px 12px 12px}
+#nodeStyleBox .nsG.open .nsGB{display:block}
 #nodeStyleBox .nsT{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 3px}
 #nodeStyleBox .nsTgt{font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--c0t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #nodeStyleBox .nsHint{font-size:11.5px;color:var(--muted);margin:2px 0 4px}
-#nodeStyleBox .stGrid,#nodeStyleBox .shGrid{padding:4px 0 2px;max-height:34vh;overflow-y:auto}
+#nodeStyleBox .stGrid,#nodeStyleBox .shGrid{padding:4px 0 2px}
 #nodeStyleBox .nsSw{display:grid;grid-template-columns:repeat(8,22px);gap:6px;padding:4px 0 2px}
 #nodeStyleBox .nsSw .swatch{width:22px;height:22px}
 #nodeStyleBox .nsRow{display:grid;gap:6px;padding:4px 0 2px}
@@ -207,14 +220,20 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 #ctxMenu .mitem.sub::after{content:"›";color:var(--muted);font-size:17px;line-height:1;margin-left:8px}
 .mitem:disabled:hover{background:none}
 .swatch{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);cursor:pointer;padding:0}
-#depthStyles{max-height:46vh;overflow-y:auto}
+#depthStyles{max-height:58vh;overflow-y:auto}
 .dstyle{padding:7px 0;border-bottom:1px solid var(--line)}
 .dstyle:last-child{border-bottom:0}
 .dstyle .dtop,.dstyle .dslider,.dstyle .dbtns{display:flex;align-items:center;gap:8px}
+.dstyle .dtop{cursor:pointer}
+.dstyle .dsum{flex:1;min-width:0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dstyle .dexp{border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 6px}
+.dstyle .ddet{display:none;padding:2px 0 4px}
+.dstyle.open .ddet{display:block}
 .dstyle .dslider{margin-top:4px}
 .dstyle .dbtns{margin-top:6px}
 .dstyle .dapply,.dstyle .dpick{border:1px solid var(--line);background:var(--bg);color:var(--c0t);border-radius:8px;padding:4px 8px;font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .dstyle .dapply{border-color:var(--chev)}
+.dstyle .dpick{display:inline-block;width:auto;margin-top:0;padding:4px 8px;font-size:11.5px;border-radius:8px;background:var(--bg)}
 .rrow .fico{cursor:pointer}
 #ttsBar{position:fixed;left:0;right:0;bottom:0;z-index:96;display:flex;align-items:center;gap:8px;background:var(--panel);border-top:1px solid var(--line);padding:8px 12px;box-shadow:0 -6px 20px rgba(0,0,0,.15)}
 #ttsBar.hidden{display:none}
@@ -1205,8 +1224,15 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <div class="card">
     <header><span>테마</span><button data-close>닫기</button></header>
     <div class="body">
-      <label>화면 색감</label>
-      <div class="seg" id="hueSeg">
+      <div class="seg themeTabs" id="themeTabs">
+        <button type="button" data-tab="theme" class="on">화면·추천 테마</button>
+        <button type="button" data-tab="levels">레벨별 색</button>
+        <button type="button" data-tab="node">노드 스타일</button>
+      </div>
+
+      <div class="tpane on" id="tpTheme">
+        <label>화면 색감</label>
+        <div class="seg" id="hueSeg">
         <button data-hue="brown" class="on">기본</button>
         <button data-hue="gray">그레이</button>
         <button data-hue="slate">슬레이트</button>
@@ -1220,18 +1246,25 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <button data-hue="lavender">라벤더</button>
         <button data-hue="indigo">인디고</button>
       </div>
-      <label>추천 테마 (레벨별 색 구분)</label>
-      <div class="themeRow" id="themeRow"></div>
-      <label>레벨별 배경·글자색·밝기·크기</label>
-      <div id="depthStyles"></div>
-      <label>미리보기</label>
-      <div id="depthPreview"></div>
-      <p class="phint">밝기와 다크모드는 그대로, 색 조합만 바뀝니다 · 글자색은 기본이 배경에 맞춘 자동이고, "글자" 색을 고르면 그 색으로 고정됩니다("자동"으로 되돌리기 가능) · 크기는 이 레벨 노드의 글자·여백을 함께 키우거나 줄입니다</p>
-      <label>노드 스타일 변경 (선택한 노드)</label>
-      <div id="nodeStyleBox"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button id="btnSavePrefsHtml" style="border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">설정을 담은 HTML로 저장</button>
-        <button id="btnResetPrefs" style="border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">테마 초기화</button>
+        <label>추천 테마 (레벨별 색 구분)</label>
+        <div class="themeRow" id="themeRow"></div>
+        <p class="phint">밝기와 다크모드는 그대로, 색 조합만 바뀝니다. 레벨마다 색을 직접 고치려면 "레벨별 색" 탭을 보세요.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+          <button id="btnSavePrefsHtml" style="border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">설정을 담은 HTML로 저장</button>
+          <button id="btnResetPrefs" style="border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">테마 초기화</button>
+        </div>
+      </div>
+
+      <div class="tpane" id="tpLevels">
+        <label>미리보기</label>
+        <div id="depthPreview"></div>
+        <label>레벨을 눌러 펼치면 배경·글자색·밝기·크기를 고칠 수 있습니다</label>
+        <div id="depthStyles"></div>
+        <p class="phint">글자색은 기본이 배경에 맞춘 "자동"이고, 색을 고르면 그 색으로 고정됩니다("자동"으로 되돌리기 가능) · 크기는 이 레벨 노드의 글자·여백을 함께 키우거나 줄입니다</p>
+      </div>
+
+      <div class="tpane" id="tpNode">
+        <div id="nodeStyleBox"></div>
       </div>
     </div>
   </div>
@@ -1867,7 +1900,15 @@ $("btnUndo").addEventListener("click",()=>{if(tab==="reader")undoMap();else fcUn
 $("btnRedo").addEventListener("click",()=>{if(tab==="reader")redoMap();else fcRedo();});
 $("btnTheme").addEventListener("click",()=>{prefs.theme=prefs.theme==="dark"?"light":"dark";savePrefs();applyPrefs();});
 $("btnFont").addEventListener("click",()=>{closeCtxMenu();$("fontModal").classList.remove("hidden");});
-$("btnPalette").addEventListener("click",()=>{closeCtxMenu();$("paletteModal").classList.remove("hidden");renderDepthUI();renderDepthPreview();renderNodeStyleUI();});
+let themeTab="theme";
+function setThemeTab(k){
+  themeTab=k;
+  document.querySelectorAll("#themeTabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===k));
+  [["theme","tpTheme"],["levels","tpLevels"],["node","tpNode"]].forEach(pr=>$(pr[1]).classList.toggle("on",pr[0]===k));
+  if(k==="node")renderNodeStyleUI();
+}
+$("themeTabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(b)setThemeTab(b.dataset.tab);});
+$("btnPalette").addEventListener("click",()=>{closeCtxMenu();$("paletteModal").classList.remove("hidden");renderDepthUI();renderDepthPreview();renderNodeStyleUI();setThemeTab(themeTab);});
 $("btnHome").addEventListener("click",()=>{
   const proceed=()=>{
     document.querySelectorAll(".overlay").forEach(o=>o.classList.add("hidden"));
@@ -1885,6 +1926,7 @@ $("hueSeg").addEventListener("click",e=>{
   const b=e.target.closest("button[data-hue]");if(!b)return;
   prefs.hue=b.dataset.hue;savePrefs();applyPrefs();
 });
+let dOpen=-1;
 function renderDepthUI(){
   const wrap=$("depthStyles");wrap.innerHTML="";
   if(!Array.isArray(prefs.depthStyles))prefs.depthStyles=[];
@@ -1894,11 +1936,23 @@ function renderDepthUI(){
   prefs.depthStyles.forEach((ds,i)=>{
     if(!isFinite(ds.sz))ds.sz=0;
     const row=document.createElement("div");row.className="dstyle";
-    row.innerHTML='<div class="dtop"><span class="dlab"></span><input type="color" title="배경 색상"><button class="dbasic">기본</button></div>'
+    row.innerHTML='<div class="dtop"><span class="dlab"></span><input type="color" title="배경 색상"><span class="dsum"></span><button class="dbasic" type="button">기본</button><button class="dexp" type="button" title="펼치기·접기">▾</button></div>'
+      +'<div class="ddet">'
       +'<div class="dslider"><span class="dmini">글자</span><input type="color" class="dtc" title="이 레벨의 글자 색상"><button class="dtcauto" type="button" title="배경에 맞춰 자동으로">자동</button><span class="dval dvaltc"></span></div>'
       +'<div class="dslider"><span class="dmini">밝기</span><input type="range" class="dbr" min="-20" max="20" step="1" title="밝기"><span class="dval dvalb"></span></div>'
       +'<div class="dslider"><span class="dmini">크기</span><input type="range" class="dsz" min="-40" max="80" step="5" title="이 레벨 노드의 크기"><span class="dval dvalsz"></span></div>'
-      +'<div class="dbtns"><button class="dapply" title="이 레벨의 모든 노드에 적용">레벨 전체</button><button class="dpick" title="지금 선택한 노드에만 적용(색만)">선택 노드</button></div>';
+      +'<div class="dbtns"><button class="dapply" title="이 레벨의 모든 노드에 적용">레벨 전체</button><button class="dpick" title="지금 선택한 노드에만 적용(색만)">선택 노드</button></div>'
+      +'</div>';
+    if(dOpen===i)row.classList.add("open");
+    const dsumEl=row.querySelector(".dsum");
+    const sum=()=>{const parts=[];if(ds.tc)parts.push("글자색 지정");if(ds.b)parts.push("밝기 "+(ds.b>0?"+":"")+ds.b+"%");if(ds.sz)parts.push("크기 "+(ds.sz>0?"+":"")+ds.sz+"%");dsumEl.textContent=parts.join(" · ");};
+    row.querySelector(".dtop").addEventListener("click",e=>{
+      if(e.target.closest("input,.dbasic"))return;
+      dOpen=(dOpen===i)?-1:i;
+      [...wrap.children].forEach((r2,j)=>r2.classList.toggle("open",j===dOpen));
+    });
+    row.addEventListener("input",sum);
+    row.addEventListener("click",()=>setTimeout(sum,0));
     row.querySelector(".dlab").textContent=labs[i];
     const ci=row.querySelector('input[type="color"]'),rg=row.querySelector('.dbr'),dv=row.querySelector(".dvalb"),
       sg=row.querySelector('.dsz'),sv=row.querySelector(".dvalsz");
@@ -1918,6 +1972,7 @@ function renderDepthUI(){
     row.querySelector(".dbasic").addEventListener("click",()=>{ds.c="";ds.b=0;ds.sz=0;ds.tc="";savePrefs();renderDepthUI();render();renderDepthPreview();});
     row.querySelector(".dapply").addEventListener("click",()=>{ds.c=ci.value;ds.b=+rg.value;ds.sz=+sg.value;dv.textContent=(ds.b>0?"+":"")+ds.b+"%";sv.textContent=(ds.sz>0?"+":"")+ds.sz+"%";snapshotThemeEdit();savePrefs();render();renderDepthPreview();toast(labs[i]+" 노드 전체에 색·크기를 적용했습니다");});
     row.querySelector(".dpick").addEventListener("click",()=>applyColorToSelection(ci.value));
+    sum();
     wrap.appendChild(row);
   });
 }
@@ -2096,6 +2151,24 @@ function nodesAtDepth(d){
   (function rec(n,dep){if(!n)return;if(dep===d)out.push(n);(n.children||[]).forEach(c=>rec(c,dep+1));})(model,0);
   return out;
 }
+/* 새로 만든 노드(Tab/Enter/우클릭 +하위·+상위노드/표의 행·칸 추가)가 같은 레벨 노드들의 스타일을 이어받게 한다.
+   "이 레벨 전체"로 스타일·모양·글자 크기를 적용해 둔 뒤 노드를 추가하면 새 노드만 기본 모양으로
+   나오던 문제의 수정. 같은 레벨의 다른 노드 중 절반 넘게 같은 값이면(= 레벨 전체에 적용해 둔 상태)
+   그 값을 물려받고, 한두 개에만 따로 적용한 스타일은 물려받지 않는다. 글자색·배경색·굵게 등은
+   노드마다 따로 적용하는 값이라 물려받지 않는다. */
+function inheritLevelStyle(c){
+  const d=depthOfNode(c.id);
+  if(d<1)return;
+  const peers=nodesAtDepth(d).filter(x=>x!==c);
+  if(!peers.length)return;
+  ["st","shape","fs"].forEach(k=>{
+    const cnt=new Map();
+    peers.forEach(p=>{const v=p[k]||(k==="fs"?0:"");cnt.set(v,(cnt.get(v)||0)+1);});
+    let best=null,bc=0;
+    cnt.forEach((num,v)=>{if(num>bc){bc=num;best=v;}});
+    if(best&&bc*2>peers.length)c[k]=best;
+  });
+}
 function applyColorToSelection(col){
   const ids=selSet.size?[...selSet]:(selNodeId?[selNodeId]:[]);
   if(!ids.length){toast("먼저 노드를 선택하세요 (클릭 또는 Ctrl+클릭)");return;}
@@ -2163,22 +2236,45 @@ function nsMutate(fn,msg){
   if(msg)toast(msg+" ("+t.length+"개)");
   renderNodeStyleUI();
 }
+let nsOpen="style";
 function renderNodeStyleUI(){
   const box=$("nodeStyleBox");if(!box)return;
   box.innerHTML="";
   const sel=nsSelNodes();
   const n=byId(selNodeId)||sel[0];
-  const hint=(t)=>{const d=document.createElement("div");d.className="nsHint";d.textContent=t;box.appendChild(d);};
+  const hint=(t,parent)=>{const d=document.createElement("div");d.className="nsHint";d.textContent=t;(parent||box).appendChild(d);};
   if(!model||tab!=="reader"||!n){
     hint("마인드맵에서 노드를 먼저 선택(클릭·우클릭)한 뒤 테마를 열면 여기서 그 노드의 스타일을 바꿀 수 있습니다");
     return;
   }
-  const T=(t)=>{const d=document.createElement("div");d.className="nsT";d.textContent=t;box.appendChild(d);};
   const tg=document.createElement("div");tg.className="nsTgt";tg.id="nsTarget";
   const nm=(n.text||"(빈 노드)").replace(/\s+/g," ").trim();
   tg.textContent=sel.length>1?("선택한 노드 "+sel.length+"개"):("선택한 노드: "+(nm.length>28?nm.slice(0,28)+"…":nm));
   box.appendChild(tg);
-  const swrow=(prop,clearLabel,msg)=>{
+  /* 적용 범위는 항상 보이게 맨 위에 둔다 (스타일·모양·글자 크기에 적용) */
+  const sc=document.createElement("div");sc.className="nsScopeRow";
+  const scl=document.createElement("span");scl.className="nsScopeLab";scl.textContent="스타일·모양·글자 크기 적용 범위";sc.appendChild(scl);
+  const scg=document.createElement("div");scg.className="nsRow";scg.style.gridTemplateColumns="1fr 1fr";scg.id="nsScope";
+  [["sel","선택한 노드"],["level","이 레벨 전체"]].forEach(pr=>{
+    const sb=document.createElement("button");sb.type="button";sb.className="nsBtn"+(nsScope===pr[0]?" on":"");sb.dataset.scope=pr[0];sb.textContent=pr[1];
+    sb.addEventListener("click",()=>{nsScope=pr[0];[...scg.children].forEach(x=>x.classList.toggle("on",x.dataset.scope===nsScope));});
+    scg.appendChild(sb);
+  });
+  sc.appendChild(scg);box.appendChild(sc);
+
+  /* 항목이 많아 길어지므로 접이식(한 번에 한 묶음만 펼침) */
+  const groups=[];
+  const group=(key,title)=>{
+    const g=document.createElement("div");g.className="nsG"+(nsOpen===key?" open":"");g.dataset.g=key;
+    const h=document.createElement("button");h.type="button";h.className="nsGH";
+    h.innerHTML='<span></span><i>▾</i>';h.firstChild.textContent=title;
+    const body=document.createElement("div");body.className="nsGB";
+    h.addEventListener("click",()=>{nsOpen=(nsOpen===key?"":key);groups.forEach(x=>x.classList.toggle("open",x.dataset.g===nsOpen));});
+    g.appendChild(h);g.appendChild(body);box.appendChild(g);groups.push(g);
+    return body;
+  };
+  const T=(t,p)=>{const d=document.createElement("div");d.className="nsT";d.textContent=t;p.appendChild(d);};
+  const swrow=(p,prop,clearLabel,msg)=>{
     const g=document.createElement("div");g.className="nsSw";
     CTX_COLORS.forEach(c=>{
       const b=document.createElement("button");b.type="button";b.className="swatch";b.title=c;b.style.background=c;
@@ -2186,22 +2282,14 @@ function renderNodeStyleUI(){
       b.addEventListener("click",()=>nsMutate(x=>{x[prop]=c;},msg));
       g.appendChild(b);
     });
-    box.appendChild(g);
+    p.appendChild(g);
     const r=document.createElement("button");r.type="button";r.className="nsBtn";r.style.marginTop="4px";r.textContent=clearLabel;
     r.addEventListener("click",()=>nsMutate(x=>{x[prop]="";},clearLabel+" 적용"));
-    box.appendChild(r);
+    p.appendChild(r);
   };
-  T("글자 색상");swrow("color","기본 색상","글자 색상 적용");
-  T("배경색");swrow("bg","기본 배경","배경색 적용");
-  T("적용 범위 (노드 스타일·모양·글자 크기)");
-  const scg=document.createElement("div");scg.className="nsRow";scg.style.gridTemplateColumns="1fr 1fr";scg.id="nsScope";
-  [["sel","선택한 노드"],["level","이 레벨 전체"]].forEach(pr=>{
-    const sb=document.createElement("button");sb.type="button";sb.className="nsBtn"+(nsScope===pr[0]?" on":"");sb.dataset.scope=pr[0];sb.textContent=pr[1];
-    sb.addEventListener("click",()=>{nsScope=pr[0];[...scg.children].forEach(x=>x.classList.toggle("on",x.dataset.scope===nsScope));});
-    scg.appendChild(sb);
-  });
-  box.appendChild(scg);
-  T("노드 스타일");
+
+  let p=group("style","스타일 · 모양");
+  T("노드 스타일",p);
   const stg=document.createElement("div");stg.className="stGrid";stg.id="nsStyleGrid";
   NODE_STYLES.forEach(sw=>{
     const b=document.createElement("button");b.type="button";b.className="stPick"+(n.st===sw.k||(!n.st&&sw.k==="")?" on":"");
@@ -2209,8 +2297,8 @@ function renderNodeStyleUI(){
     b.addEventListener("click",()=>{applyNodeStyle(sw.k,nsScope);renderNodeStyleUI();});
     stg.appendChild(b);
   });
-  box.appendChild(stg);
-  T("노드 모양");
+  p.appendChild(stg);
+  T("노드 모양",p);
   const shg=document.createElement("div");shg.className="shGrid";shg.id="nsShapeGrid";
   NODE_SHAPES.forEach(sw=>{
     const b=document.createElement("button");b.type="button";b.className="stPick"+(n.shape===sw.k||(!n.shape&&sw.k==="")?" on":"");
@@ -2218,25 +2306,23 @@ function renderNodeStyleUI(){
     b.addEventListener("click",()=>{applyNodeShape(sw.k,nsScope);renderNodeStyleUI();});
     shg.appendChild(b);
   });
-  box.appendChild(shg);
-  T("하위 노드 보기");
-  const vwg=document.createElement("div");vwg.className="nsRow";vwg.style.gridTemplateColumns="repeat(3,1fr)";vwg.id="nsViewRow";
-  [["","기본(개요)"],["tableRows","표·2열"],["tableCols","표·다열"]].forEach(pair=>{
-    const b=document.createElement("button");b.type="button";b.className="nsBtn"+((n.view||"")===pair[0]?" on":"");b.textContent=pair[1];
-    b.addEventListener("click",()=>nsMutate(x=>{x.view=pair[0];if(pair[0])x.folded=false;},"하위 노드 보기 적용"));
-    vwg.appendChild(b);
-  });
-  box.appendChild(vwg);
-  T("전체 글자 크기");
-  hint("노드 전체에 적용됩니다 · 일부 글자만 키우려면 노드편집에서 드래그 선택하세요");
+  p.appendChild(shg);
+
+  p=group("color","글자색 · 배경색");
+  T("글자 색상",p);swrow(p,"color","기본 색상","글자 색상 적용");
+  T("배경색",p);swrow(p,"bg","기본 배경","배경색 적용");
+
+  p=group("text","글자 크기 · 서식");
+  T("전체 글자 크기",p);
+  hint("노드 전체에 적용됩니다 · 일부 글자만 키우려면 노드편집에서 드래그 선택하세요",p);
   const fg=document.createElement("div");fg.className="nsRow";fg.style.gridTemplateColumns="repeat(4,1fr)";fg.id="nsFsRow";
   [["보통",0],["작게",12],["크게",17],["더 크게",22]].forEach(pair=>{
     const b=document.createElement("button");b.type="button";b.className="nsBtn"+((n.fs||0)===pair[1]?" on":"");b.textContent=pair[0];
     b.addEventListener("click",()=>{applyNodeFS(pair[1],nsScope);renderNodeStyleUI();});
     fg.appendChild(b);
   });
-  box.appendChild(fg);
-  T("글자 서식");
+  p.appendChild(fg);
+  T("글자 서식",p);
   const wrap=document.createElement("div");wrap.className="nsRow";wrap.style.gridTemplateColumns="repeat(2,1fr)";wrap.id="nsFmtRow";
   [["굵게","bold"],["기울임","italic"],["밑줄","underline"],["취소선","strike"]].forEach(pair=>{
     const bt=document.createElement("button");bt.type="button";bt.className="nsBtn"+(n[pair[1]]?" on":"");
@@ -2244,7 +2330,16 @@ function renderNodeStyleUI(){
     bt.addEventListener("click",()=>{const v=!n[pair[1]];nsMutate(x=>{x[pair[1]]=v;},pair[0]+(v?" 적용":" 해제"));});
     wrap.appendChild(bt);
   });
-  box.appendChild(wrap);
+  p.appendChild(wrap);
+
+  p=group("view","하위 노드 보기");
+  const vwg=document.createElement("div");vwg.className="nsRow";vwg.style.gridTemplateColumns="repeat(3,1fr)";vwg.id="nsViewRow";
+  [["","기본(개요)"],["tableRows","표·2열"],["tableCols","표·다열"]].forEach(pair=>{
+    const b=document.createElement("button");b.type="button";b.className="nsBtn"+((n.view||"")===pair[0]?" on":"");b.textContent=pair[1];
+    b.addEventListener("click",()=>nsMutate(x=>{x.view=pair[0];if(pair[0])x.folded=false;},"하위 노드 보기 적용"));
+    vwg.appendChild(b);
+  });
+  p.appendChild(vwg);
 }
 
 /* ═══ 파싱 ═══ */
@@ -3139,13 +3234,13 @@ function renderChildTable(n,d){
    표는 노드 트리에서 벗어난 별도 블록이라 그 방식을 그대로 재사용하기 애매해서다). */
 $("list").addEventListener("click",e=>{
   const addRow=e.target.closest(".tblAddRow");
-  if(addRow){e.stopPropagation();const n=byId(addRow.dataset.id);if(!n)return;const c=mk("");n.children.push(c);render();markDirty();openEdit(c);return;}
+  if(addRow){e.stopPropagation();const n=byId(addRow.dataset.id);if(!n)return;const c=mk("");n.children.push(c);inheritLevelStyle(c);render();markDirty();openEdit(c);return;}
   const delRow=e.target.closest(".tblDelRow");
   if(delRow){e.stopPropagation();const id=delRow.dataset.id;const sp=findParent(model,id);if(!sp)return;const idx=sp.children.findIndex(x=>x.id===id);if(idx<0)return;sp.children.splice(idx,1);render();markDirty();toast("행을 삭제했습니다");return;}
   const addCell=e.target.closest(".tblAddCell");
-  if(addCell){e.stopPropagation();const n=byId(addCell.dataset.id);if(!n)return;const label=addCell.dataset.label||"";const c=mk(label?label+": ":"");n.children.push(c);render();markDirty();openEdit(c);return;}
+  if(addCell){e.stopPropagation();const n=byId(addCell.dataset.id);if(!n)return;const label=addCell.dataset.label||"";const c=mk(label?label+": ":"");n.children.push(c);inheritLevelStyle(c);render();markDirty();openEdit(c);return;}
   const addChip=e.target.closest(".tchipAdd");
-  if(addChip){e.stopPropagation();const n=byId(addChip.dataset.id);if(!n)return;const c=mk("");n.children.push(c);render();markDirty();openEdit(c);return;}
+  if(addChip){e.stopPropagation();const n=byId(addChip.dataset.id);if(!n)return;const c=mk("");n.children.push(c);inheritLevelStyle(c);render();markDirty();openEdit(c);return;}
   const editTgt=e.target.closest(".tblWrap [data-editid]");
   if(editTgt){e.stopPropagation();const n=byId(editTgt.dataset.editid);if(n)openEdit(n);return;}
 });
@@ -4703,18 +4798,18 @@ document.addEventListener("keydown",e=>{
     const n=byId(cid);
     if(e.key==="Tab"&&!e.shiftKey){
       e.preventDefault();
-      n.folded=false;const c=mk("");n.children.push(c);render();markDirty();openEdit(c);
+      n.folded=false;const c=mk("");n.children.push(c);inheritLevelStyle(c);render();markDirty();openEdit(c);
     }else if(e.key==="Tab"&&e.shiftKey){
       e.preventDefault();
       if(n.id===model.id){toast("루트 노드에는 추가할 수 없습니다");return;}
       const sp=findParent(model,n.id);if(!sp)return;
-      const p=mk("");p.folded=false;p.children=[n];sp.children[sp.children.indexOf(n)]=p;
+      const p=mk("");p.folded=false;p.children=[n];sp.children[sp.children.indexOf(n)]=p;inheritLevelStyle(p);
       render();markDirty();openEdit(p);
     }else if(e.key==="Enter"){
       e.preventDefault();
       if(n.id===model.id){toast("루트 노드에는 형제 노드를 추가할 수 없습니다");return;}
       const sp=findParent(model,n.id);if(!sp)return;
-      const s=mk("");const idx=sp.children.indexOf(n);sp.children.splice(idx+1,0,s);
+      const s=mk("");const idx=sp.children.indexOf(n);sp.children.splice(idx+1,0,s);inheritLevelStyle(s);
       render();markDirty();openEdit(s);
     }
     return;
@@ -5568,8 +5663,8 @@ const ctxDefs={
   node:[
     {cap:"편집"},
     ["노드편집",(tid)=>{const n=byId(tid);if(n)openEdit(n);}],
-    ["+하위노드",(tid)=>{const n=byId(tid);if(!n)return;n.folded=false;const c=mk("");n.children.push(c);render();markDirty();openEdit(c);}],
-    ["+상위노드",(tid)=>{const n=byId(tid);if(!n)return;if(n.id===model.id){toast("루트 노드에는 추가할 수 없습니다");return;}const sp=findParent(model,n.id);if(!sp)return;const p=mk("");p.folded=false;p.children=[n];sp.children[sp.children.indexOf(n)]=p;render();markDirty();openEdit(p);}],
+    ["+하위노드",(tid)=>{const n=byId(tid);if(!n)return;n.folded=false;const c=mk("");n.children.push(c);inheritLevelStyle(c);render();markDirty();openEdit(c);}],
+    ["+상위노드",(tid)=>{const n=byId(tid);if(!n)return;if(n.id===model.id){toast("루트 노드에는 추가할 수 없습니다");return;}const sp=findParent(model,n.id);if(!sp)return;const p=mk("");p.folded=false;p.children=[n];sp.children[sp.children.indexOf(n)]=p;inheritLevelStyle(p);render();markDirty();openEdit(p);}],
     {hr:1},
     {cap:"복사·붙여넣기"},
     ["복사",(tid)=>{nodeCopy(tid);}],
