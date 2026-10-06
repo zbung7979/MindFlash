@@ -98,6 +98,14 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 #fchipClearAll:hover{background:rgba(127,139,160,.16);color:inherit}
 #scopeBar{display:none;align-items:center;gap:8px;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--c0t)}
 #scopeBar.show{display:flex}
+#replaceRow{display:none;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--c0t)}
+#replaceRow.show{display:flex}
+#replaceRow input[type=text]{flex:1;min-width:120px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--c0t);padding:7px 12px;font:inherit;font-size:13.5px}
+#replaceRow select{font:inherit;font-size:12.5px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:inherit}
+#replaceRow button{border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+#replaceRow button:disabled{opacity:.45;cursor:default}
+#replaceRow button.pri{border-color:var(--chev);font-weight:700}
+#rpInfo{flex-basis:100%;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #scopeBar .mag{color:var(--chev);flex:none;display:inline-flex}
 #scopeLabel{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 #scopeClear{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);flex:none;border:0;background:none;cursor:pointer}
@@ -145,6 +153,17 @@ mark{background:var(--hitbg);color:var(--hittx);border-radius:3px;padding:0 1px}
 .ncard.sh-tag{border-radius:3px 16px 16px 3px;border-left:5px solid var(--chev)}
 .ncard.sh-leaf{border-radius:4px 20px 4px 20px}
 .shGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 14px 2px}
+/* 테마 창 안의 "노드 스타일 변경" 구획 — 예전 우클릭 메뉴에서 옮겨온 것 */
+#nodeStyleBox .nsT{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 3px}
+#nodeStyleBox .nsTgt{font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--c0t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nodeStyleBox .nsHint{font-size:11.5px;color:var(--muted);margin:2px 0 4px}
+#nodeStyleBox .stGrid,#nodeStyleBox .shGrid{padding:4px 0 2px;max-height:34vh;overflow-y:auto}
+#nodeStyleBox .nsSw{display:grid;grid-template-columns:repeat(8,22px);gap:6px;padding:4px 0 2px}
+#nodeStyleBox .nsSw .swatch{width:22px;height:22px}
+#nodeStyleBox .nsRow{display:grid;gap:6px;padding:4px 0 2px}
+#nodeStyleBox .nsBtn{border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:9px;padding:7px 4px;font:inherit;font-size:12.5px;cursor:pointer;text-align:center}
+#nodeStyleBox .nsBtn:hover{background:var(--line)}
+#nodeStyleBox .nsBtn.on{background:var(--line);font-weight:700;border-color:var(--chev)}
 .stPick{border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:9px;padding:6px 4px;font:inherit;font-size:10.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
 .stPick.on{border-color:var(--chev);box-shadow:0 0 0 2px var(--chev) inset}
 .stPick .sp{width:100%;height:26px;border-radius:6px;background:var(--line);display:block}
@@ -757,6 +776,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
     <svg width="16" height="16" viewBox="0 0 20 20"><path d="M2.8 3.5h14.4l-5.6 6.6v5.4l-3.2 1.8v-7.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="fbadge" id="filterBadge"></span></button>
   <button class="sbtn" id="btnResultsToCards" title="검색·필터 결과를 카드로" aria-label="검색·필터 결과를 카드로">
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.6" y="6.2" width="11.6" height="9.2" rx="2.2"/><path d="M5.8 3.6h8.6a2.2 2.2 0 012.2 2.2v6" stroke-linecap="round"/><path d="M6 10.8h4M6 13.2h6" stroke-linecap="round"/></svg></button>
+  <button class="sbtn" id="btnReplace" title="바꾸기 (Ctrl+H) — 검색한 단어를 다른 내용으로 바꿉니다" aria-label="바꾸기"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h12l-3-3M17 13H5l3 3"/></svg></button>
   <button class="sbtn" id="btnBulkFmt" title="검색·필터한 단어에 형광펜/굵게 등 서식 일괄 적용" aria-label="검색·필터 단어 서식 일괄 적용"><span style="font-weight:800;font-size:14px;text-decoration:underline;text-decoration-color:#FCA000;text-decoration-thickness:3px">A</span></button>
   <span class="mag"><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
 </div>
@@ -765,6 +785,17 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <span class="mag"><svg width="15" height="15" viewBox="0 0 20 20"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" transform="rotate(45 9 9)"/><circle cx="9" cy="9" r="7.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
   <span id="scopeLabel"></span>
   <button id="scopeClear" title="검색 범위 해제(전체 문서에서 검색)" aria-label="검색 범위 해제"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+</div>
+
+<div id="replaceRow">
+  <input id="replaceInput" type="text" placeholder="바꿀 내용 (비워 두면 삭제)" autocomplete="off">
+  <select id="rpTarget" title="바꿀 대상"><option value="both">제목+메모</option><option value="title">제목만</option><option value="note">메모만</option></select>
+  <button type="button" id="rpPrev" title="이전 찾기">◀</button>
+  <button type="button" id="rpNext" title="다음 찾기">▶</button>
+  <button type="button" id="rpOne" class="pri" title="지금 선택된 곳 하나만 바꾸고 다음으로 (Enter)">바꾸기</button>
+  <button type="button" id="rpAll" class="pri" title="찾은 모든 곳을 한꺼번에 바꿈">모두 바꾸기</button>
+  <button type="button" id="rpClose" title="닫기 (Esc)">✕</button>
+  <div id="rpInfo"></div>
 </div>
 
 <div id="filterRow" style="display:none">
@@ -1196,6 +1227,8 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
       <label>미리보기</label>
       <div id="depthPreview"></div>
       <p class="phint">밝기와 다크모드는 그대로, 색 조합만 바뀝니다 · 글자색은 기본이 배경에 맞춘 자동이고, "글자" 색을 고르면 그 색으로 고정됩니다("자동"으로 되돌리기 가능) · 크기는 이 레벨 노드의 글자·여백을 함께 키우거나 줄입니다</p>
+      <label>노드 스타일 변경 (선택한 노드)</label>
+      <div id="nodeStyleBox"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button id="btnSavePrefsHtml" style="border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">설정을 담은 HTML로 저장</button>
         <button id="btnResetPrefs" style="border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer">테마 초기화</button>
@@ -1834,7 +1867,7 @@ $("btnUndo").addEventListener("click",()=>{if(tab==="reader")undoMap();else fcUn
 $("btnRedo").addEventListener("click",()=>{if(tab==="reader")redoMap();else fcRedo();});
 $("btnTheme").addEventListener("click",()=>{prefs.theme=prefs.theme==="dark"?"light":"dark";savePrefs();applyPrefs();});
 $("btnFont").addEventListener("click",()=>{closeCtxMenu();$("fontModal").classList.remove("hidden");});
-$("btnPalette").addEventListener("click",()=>{closeCtxMenu();$("paletteModal").classList.remove("hidden");renderDepthUI();renderDepthPreview();});
+$("btnPalette").addEventListener("click",()=>{closeCtxMenu();$("paletteModal").classList.remove("hidden");renderDepthUI();renderDepthPreview();renderNodeStyleUI();});
 $("btnHome").addEventListener("click",()=>{
   const proceed=()=>{
     document.querySelectorAll(".overlay").forEach(o=>o.classList.add("hidden"));
@@ -2098,7 +2131,7 @@ function applyNodeShape(shapeKey,scope){
   render();markDirty();snapshotNow();
   toast(shapeKey?("노드 모양 적용 — "+(scope==="level"?"레벨 전체 ":"선택 노드 ")+targets.length+"개"):("노드 모양을 기본으로 되돌렸습니다 ("+targets.length+"개)"));
 }
-/* "노드 스타일 변경" 메뉴의 "전체 글자 크기" 프리셋 — 노드편집 화면에서 텍스트를
+/* 테마 창 "노드 스타일 변경"의 "전체 글자 크기" 프리셋 — 노드편집 화면에서 텍스트를
    드래그 선택해 일부 글자만 키우는 "부분 글자 크기"(n.sr, applySizeToRange)와는
    다른 기능이다. 이쪽은 선택 범위 없이 노드(또는 레벨 전체) 글자 크기를 한 번에
    맞추는 용도라, 노드 스타일/모양처럼 선택한 노드·레벨 전체 범위를 지원한다. */
@@ -2116,6 +2149,103 @@ function applyNodeFS(fsVal,scope){
   toast("전체 글자 크기 적용 — "+(scope==="level"?"레벨 전체 ":"선택 노드 ")+targets.length+"개");
 }
 
+
+/* ═══ 테마 창의 "노드 스타일 변경" — 예전 우클릭 메뉴(openStyleMenu)에 있던 기능을 그대로 옮긴 것.
+   글자 색상·배경색·굵게/기울임/밑줄/취소선·하위 노드 보기는 지금 선택한 노드(여러 개면 전부)에,
+   노드 스타일·모양·전체 글자 크기는 아래 "적용 범위"(선택한 노드 / 이 레벨 전체)에 따라 적용된다. ═══ */
+let nsScope="level";
+function nsSelNodes(){return (selSet.size?[...selSet]:(selNodeId?[selNodeId]:[])).map(byId).filter(Boolean);}
+function nsMutate(fn,msg){
+  const t=nsSelNodes();
+  if(!t.length){toast("먼저 노드를 선택하세요");return;}
+  t.forEach(fn);
+  render();markDirty();snapshotNow();
+  if(msg)toast(msg+" ("+t.length+"개)");
+  renderNodeStyleUI();
+}
+function renderNodeStyleUI(){
+  const box=$("nodeStyleBox");if(!box)return;
+  box.innerHTML="";
+  const sel=nsSelNodes();
+  const n=byId(selNodeId)||sel[0];
+  const hint=(t)=>{const d=document.createElement("div");d.className="nsHint";d.textContent=t;box.appendChild(d);};
+  if(!model||tab!=="reader"||!n){
+    hint("마인드맵에서 노드를 먼저 선택(클릭·우클릭)한 뒤 테마를 열면 여기서 그 노드의 스타일을 바꿀 수 있습니다");
+    return;
+  }
+  const T=(t)=>{const d=document.createElement("div");d.className="nsT";d.textContent=t;box.appendChild(d);};
+  const tg=document.createElement("div");tg.className="nsTgt";tg.id="nsTarget";
+  const nm=(n.text||"(빈 노드)").replace(/\s+/g," ").trim();
+  tg.textContent=sel.length>1?("선택한 노드 "+sel.length+"개"):("선택한 노드: "+(nm.length>28?nm.slice(0,28)+"…":nm));
+  box.appendChild(tg);
+  const swrow=(prop,clearLabel,msg)=>{
+    const g=document.createElement("div");g.className="nsSw";
+    CTX_COLORS.forEach(c=>{
+      const b=document.createElement("button");b.type="button";b.className="swatch";b.title=c;b.style.background=c;
+      if(n[prop]===c){b.style.outline="2px solid var(--c0t)";b.style.outlineOffset="2px";}
+      b.addEventListener("click",()=>nsMutate(x=>{x[prop]=c;},msg));
+      g.appendChild(b);
+    });
+    box.appendChild(g);
+    const r=document.createElement("button");r.type="button";r.className="nsBtn";r.style.marginTop="4px";r.textContent=clearLabel;
+    r.addEventListener("click",()=>nsMutate(x=>{x[prop]="";},clearLabel+" 적용"));
+    box.appendChild(r);
+  };
+  T("글자 색상");swrow("color","기본 색상","글자 색상 적용");
+  T("배경색");swrow("bg","기본 배경","배경색 적용");
+  T("적용 범위 (노드 스타일·모양·글자 크기)");
+  const scg=document.createElement("div");scg.className="nsRow";scg.style.gridTemplateColumns="1fr 1fr";scg.id="nsScope";
+  [["sel","선택한 노드"],["level","이 레벨 전체"]].forEach(pr=>{
+    const sb=document.createElement("button");sb.type="button";sb.className="nsBtn"+(nsScope===pr[0]?" on":"");sb.dataset.scope=pr[0];sb.textContent=pr[1];
+    sb.addEventListener("click",()=>{nsScope=pr[0];[...scg.children].forEach(x=>x.classList.toggle("on",x.dataset.scope===nsScope));});
+    scg.appendChild(sb);
+  });
+  box.appendChild(scg);
+  T("노드 스타일");
+  const stg=document.createElement("div");stg.className="stGrid";stg.id="nsStyleGrid";
+  NODE_STYLES.forEach(sw=>{
+    const b=document.createElement("button");b.type="button";b.className="stPick"+(n.st===sw.k||(!n.st&&sw.k==="")?" on":"");
+    b.innerHTML='<span class="sp" style="'+(sw.c||"box-shadow:0 1px 3px rgba(0,0,0,.25)")+'"></span>'+sw.n;
+    b.addEventListener("click",()=>{applyNodeStyle(sw.k,nsScope);renderNodeStyleUI();});
+    stg.appendChild(b);
+  });
+  box.appendChild(stg);
+  T("노드 모양");
+  const shg=document.createElement("div");shg.className="shGrid";shg.id="nsShapeGrid";
+  NODE_SHAPES.forEach(sw=>{
+    const b=document.createElement("button");b.type="button";b.className="stPick"+(n.shape===sw.k||(!n.shape&&sw.k==="")?" on":"");
+    b.innerHTML='<span class="sp" style="'+(sw.c||"border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)")+'"></span>'+sw.n;
+    b.addEventListener("click",()=>{applyNodeShape(sw.k,nsScope);renderNodeStyleUI();});
+    shg.appendChild(b);
+  });
+  box.appendChild(shg);
+  T("하위 노드 보기");
+  const vwg=document.createElement("div");vwg.className="nsRow";vwg.style.gridTemplateColumns="repeat(3,1fr)";vwg.id="nsViewRow";
+  [["","기본(개요)"],["tableRows","표·2열"],["tableCols","표·다열"]].forEach(pair=>{
+    const b=document.createElement("button");b.type="button";b.className="nsBtn"+((n.view||"")===pair[0]?" on":"");b.textContent=pair[1];
+    b.addEventListener("click",()=>nsMutate(x=>{x.view=pair[0];if(pair[0])x.folded=false;},"하위 노드 보기 적용"));
+    vwg.appendChild(b);
+  });
+  box.appendChild(vwg);
+  T("전체 글자 크기");
+  hint("노드 전체에 적용됩니다 · 일부 글자만 키우려면 노드편집에서 드래그 선택하세요");
+  const fg=document.createElement("div");fg.className="nsRow";fg.style.gridTemplateColumns="repeat(4,1fr)";fg.id="nsFsRow";
+  [["보통",0],["작게",12],["크게",17],["더 크게",22]].forEach(pair=>{
+    const b=document.createElement("button");b.type="button";b.className="nsBtn"+((n.fs||0)===pair[1]?" on":"");b.textContent=pair[0];
+    b.addEventListener("click",()=>{applyNodeFS(pair[1],nsScope);renderNodeStyleUI();});
+    fg.appendChild(b);
+  });
+  box.appendChild(fg);
+  T("글자 서식");
+  const wrap=document.createElement("div");wrap.className="nsRow";wrap.style.gridTemplateColumns="repeat(2,1fr)";wrap.id="nsFmtRow";
+  [["굵게","bold"],["기울임","italic"],["밑줄","underline"],["취소선","strike"]].forEach(pair=>{
+    const bt=document.createElement("button");bt.type="button";bt.className="nsBtn"+(n[pair[1]]?" on":"");
+    bt.textContent=(n[pair[1]]?"✓ ":"")+pair[0];
+    bt.addEventListener("click",()=>{const v=!n[pair[1]];nsMutate(x=>{x[pair[1]]=v;},pair[0]+(v?" 적용":" 해제"));});
+    wrap.appendChild(bt);
+  });
+  box.appendChild(wrap);
+}
 
 /* ═══ 파싱 ═══ */
 function htmlToText(el){return (el.textContent||"").replace(/[ \t]+/g," ").trim();}
@@ -3255,13 +3385,14 @@ function render(){
   const hasRes=!!(q||mmFilterActive())&&computeMatchedNodes().length>0;
   if(rtc)rtc.classList.toggle("show",hasRes);
   if(bfb)bfb.classList.toggle("show",hasRes);
+  const rpb=$("btnReplace");if(rpb)rpb.classList.toggle("show",!!q||$("replaceRow").classList.contains("show"));
 }
 
 /* ═══ 검색 ═══ */
 function applySearch(){
   matches=[];cur=-1;
   if(!model)return;
-  if(!q){collapseAll();render();$("searchCount").textContent="";$("sPrev").classList.remove("show");$("sNext").classList.remove("show");return;}
+  if(!q){collapseAll();render();$("searchCount").textContent="";$("sPrev").classList.remove("show");$("sNext").classList.remove("show");rpRefresh();return;}
   refreshScopeSet();
   (function rec(n,chain){
     const hit=n.text.toLowerCase().includes(q)||n.note.toLowerCase().includes(q);
@@ -3275,6 +3406,7 @@ function applySearch(){
   $("sPrev").classList.toggle("show",matches.length>1);
   $("sNext").classList.toggle("show",matches.length>1);
   if(matches.length)jumpTo();
+  rpRefresh();
 }
 function step(dir){
   if(!matches.length)return;
@@ -3286,7 +3418,7 @@ function jumpTo(){
   if(el)el.scrollIntoView({block:"center"});
   $("searchCount").textContent=((cur+1)+"/"+matches.length);
 }
-$("searchInput").addEventListener("input",()=>{q=$("searchInput").value.trim().toLowerCase();applySearch();});
+$("searchInput").addEventListener("input",()=>{q=$("searchInput").value.trim().toLowerCase();rpCursor=null;applySearch();});
 $("searchInput").addEventListener("keydown",e=>{
   if(e.key==="Enter")step(e.shiftKey?-1:1);
   if(e.key==="Escape"){$("searchInput").value="";q="";applySearch();}
@@ -3397,6 +3529,128 @@ $("filterClear").addEventListener("click",()=>{
 addEventListener("keydown",e=>{
   if(tab!=="reader")return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="f"){e.preventDefault();$("searchInput").focus();$("searchInput").select();}
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==="h"&&!anyPopupOpen()){e.preventDefault();rpOpen();}
+});
+
+/* ═══ 바꾸기 (워드의 찾아 바꾸기) ═══
+   찾는 말은 검색창(q)이고, 지금 검색·필터에 일치한 노드들의 제목/메모 안에서 그 말이 나오는
+   곳을 "곳"(occurrence) 단위로 하나씩 이동하며 바꾸거나(바꾸기) 한꺼번에 바꾼다(모두 바꾸기).
+   바뀐 글자 구간에 걸쳐 있던 굵게/형광펜/연결 서식(sr/hlr/lkr)은 새 글자까지 그대로 이어지고,
+   그 뒤 서식 위치는 글자 수 차이만큼 밀린다. 한 번 실행 = 실행취소 한 단계(markDirty). */
+let rpCursor=null;
+function rpEsc(t){return t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function rpOccurrences(){
+  if(!model||!q)return[];
+  const target=$("rpTarget").value;
+  const order=new Map();let k=0;walkAll(n=>{order.set(n.id,k++);});
+  const out=[];
+  computeMatchedNodes().forEach(n=>{
+    [0,1].forEach(kind=>{
+      if(kind===0&&target==="note")return;
+      if(kind===1&&target==="title")return;
+      const text=kind?(n.note||""):(n.text||"");
+      const re=new RegExp(rpEsc(q),"gi");let m;
+      while((m=re.exec(text))){out.push({id:n.id,kind:kind,s:m.index,e:m.index+m[0].length,o:order.get(n.id)});}
+    });
+  });
+  out.sort((a,b)=>a.o-b.o||a.kind-b.kind||a.s-b.s);
+  return out;
+}
+function rpCurIndex(list){
+  if(!list.length)return -1;
+  if(!rpCursor)return 0;
+  const i=list.findIndex(x=>x.o>rpCursor.o||(x.o===rpCursor.o&&(x.kind>rpCursor.kind||(x.kind===rpCursor.kind&&x.s>=rpCursor.s))));
+  return i>=0?i:0;
+}
+function rpMapRanges(n,kind,from,to,ins){
+  const delta=ins-(to-from);
+  const mapR=r=>{
+    if((r.t?1:0)!==kind)return r;
+    if(r.s<=from&&r.e>=to){const ne=r.e+delta;return ne>r.s?Object.assign({},r,{e:ne}):null;}
+    if(r.e<=from)return r;
+    if(r.s>=to)return Object.assign({},r,{s:r.s+delta,e:r.e+delta});
+    return mapRangeThroughEdit(r,from,to,ins);
+  };
+  ["hlr","sr","lkr"].forEach(key=>{if(n[key]&&n[key].length)n[key]=n[key].map(mapR).filter(r=>r&&r.e>r.s);});
+}
+function rpApplyOne(n,kind,s,e,rep){
+  const old=kind?(n.note||""):(n.text||"");
+  rpMapRanges(n,kind,s,e,rep.length);
+  const nv=old.slice(0,s)+rep+old.slice(e);
+  if(kind)n.note=nv;else n.text=nv;
+}
+function rpRefresh(list,idx){
+  const row=$("replaceRow");if(!row||!row.classList.contains("show"))return;
+  if(!list){list=rpOccurrences();idx=rpCurIndex(list);}
+  const info=$("rpInfo");
+  if(!q){info.textContent="바꿀 단어를 위 검색창에 먼저 입력하세요";}
+  else if(!list.length){info.textContent="'"+q+"' — 바꿀 곳이 없습니다";}
+  else{
+    const occ=list[idx],n=byId(occ.id);
+    info.textContent=(idx+1)+" / "+list.length+"곳 · "+(n?(n.text.split("\n")[0]||"(빈 노드)"):"")+" · "+(occ.kind?"메모":"제목");
+  }
+  ["rpPrev","rpNext","rpOne","rpAll"].forEach(id=>{$(id).disabled=!list.length;});
+}
+function rpShow(){
+  const list=rpOccurrences(),i=rpCurIndex(list);
+  rpRefresh(list,i);
+  if(i<0)return;
+  const ci=matches.indexOf(list[i].id);
+  if(ci>=0){cur=ci;render();jumpTo();}
+}
+function rpOpen(){
+  $("replaceRow").classList.add("show");
+  $("btnReplace").classList.add("show");
+  if(!q){try{$("searchInput").focus();}catch(e){}rpRefresh();return;}
+  rpShow();
+  try{$("replaceInput").focus();$("replaceInput").select();}catch(e){}
+}
+function rpClose(){$("replaceRow").classList.remove("show");if(!q)$("btnReplace").classList.remove("show");}
+function rpMove(dir){
+  const list=rpOccurrences();if(!list.length)return;
+  const i=rpCurIndex(list);
+  const t=dir>0?list[(i+1)%list.length]:list[(i-1+list.length)%list.length];
+  rpCursor={o:t.o,kind:t.kind,s:t.s};
+  rpShow();
+}
+function rpReplaceOne(){
+  const list=rpOccurrences();if(!list.length)return;
+  const i=rpCurIndex(list),occ=list[i],n=byId(occ.id);if(!n)return;
+  const rep=$("replaceInput").value;
+  rpApplyOne(n,occ.kind,occ.s,occ.e,rep);
+  rpCursor={o:occ.o,kind:occ.kind,s:occ.s+rep.length};
+  markDirty();
+  applySearch();
+  rpShow();
+}
+function rpReplaceAll(){
+  const list=rpOccurrences();
+  if(!list.length){toast("바꿀 곳이 없습니다");return;}
+  const rep=$("replaceInput").value;
+  const groups=new Map();
+  list.forEach(oc=>{const key=oc.id+"|"+oc.kind;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(oc);});
+  let nodes=new Set();
+  groups.forEach(arr=>{
+    const n=byId(arr[0].id);if(!n)return;
+    arr.sort((a,b)=>b.s-a.s).forEach(oc=>rpApplyOne(n,oc.kind,oc.s,oc.e,rep));
+    nodes.add(n.id);
+  });
+  rpCursor=null;
+  markDirty();
+  const cnt=list.length;
+  applySearch();
+  toast("'"+q+"' "+cnt+"곳("+nodes.size+"개 노드)을 바꿨습니다 — 실행취소(↶)로 되돌릴 수 있어요");
+}
+$("btnReplace").addEventListener("click",()=>{if($("replaceRow").classList.contains("show"))rpClose();else rpOpen();});
+$("rpClose").addEventListener("click",rpClose);
+$("rpPrev").addEventListener("click",()=>rpMove(-1));
+$("rpNext").addEventListener("click",()=>rpMove(1));
+$("rpOne").addEventListener("click",rpReplaceOne);
+$("rpAll").addEventListener("click",rpReplaceAll);
+$("rpTarget").addEventListener("change",()=>{rpCursor=null;rpShow();});
+$("replaceInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();rpReplaceOne();}
+  else if(e.key==="Escape"){e.preventDefault();rpClose();}
 });
 
 /* 검색·필터 결과만(조상 경로 노드 제외) 카드로 보내기 — 노드 하나짜리 변환과 같은
@@ -5203,102 +5457,6 @@ function openCtxMenu(type,e,target){
   });
   placeMenu(m,e);
 }
-function openStyleMenu(tid,e){
-  /* 색상·스타일·모양·글자 크기 등 항목이 많아 메뉴 전체 높이가 화면보다 커질 수
-     있다. openCtxMenu와 같은 방식으로 최대 높이를 두고 세로 스크롤을 허용해
-     화면 밖으로 밀려난 "닫기"·글자 크기·굵게/기울임 등이 영영 안 보이는 일을 막는다. */
-  const m=ctxEl();m.innerHTML="";m.style.maxHeight="70vh";m.style.overflowY="auto";
-  const n=byId(tid);if(!n)return;
-  const save=()=>{render();markDirty();};
-  const title=t=>{const d=document.createElement("div");d.style.cssText="padding:8px 14px 2px;font-size:12px;font-weight:600;color:var(--muted)";d.textContent=t;m.appendChild(d);};
-  const swrow=(cur,set,clearLabel)=>{
-    const g=document.createElement("div");
-    g.style.cssText="display:grid;grid-template-columns:repeat(8,22px);gap:6px;padding:4px 14px 2px";
-    CTX_COLORS.forEach(c=>{
-      const b=document.createElement("button");b.className="swatch";b.title=c;
-      b.style.cssText="width:22px;height:22px;background:"+c;
-      if(cur()===c){b.style.outline="2px solid var(--c0t)";b.style.outlineOffset="2px";}
-      b.addEventListener("click",()=>{set(c);closeCtxMenu();});
-      g.appendChild(b);
-    });
-    m.appendChild(g);
-    const r=document.createElement("button");r.className="mitem";r.textContent=clearLabel;
-    r.addEventListener("click",()=>{set("");closeCtxMenu();});
-    m.appendChild(r);
-  };
-  title("글자 색상");
-  swrow(()=>n.color,c=>{n.color=c;save();},"기본 색상");
-  title("배경색");
-  swrow(()=>n.bg,c=>{n.bg=c;save();},"기본 배경");
-  title("노드 스타일");
-  let stScope="level";
-    const scg=document.createElement("div");scg.style.cssText="display:flex;gap:6px;padding:2px 14px 8px";
-    [["sel","선택한 노드"],["level","이 레벨 전체"]].forEach(pr=>{
-      const sb=document.createElement("button");sb.type="button";sb.className="mitem";
-      sb.style.cssText="flex:1;text-align:center;padding:6px 4px;font-size:12px"+(stScope===pr[0]?";background:var(--line);font-weight:700":"");
-      sb.textContent=pr[1];
-      sb.addEventListener("click",e3=>{e3.stopPropagation();stScope=pr[0];[...scg.children].forEach(x=>{x.style.fontWeight="";x.style.background="";});sb.style.background="var(--line)";sb.style.fontWeight="700";});
-      scg.appendChild(sb);
-    });
-    m.appendChild(scg);
-    const stg=document.createElement("div");stg.className="stGrid";stg.style.maxHeight="38vh";stg.style.overflowY="auto";
-  NODE_STYLES.forEach(sw=>{
-    const b=document.createElement("button");b.type="button";b.className="stPick"+(n.st===sw.k||(!n.st&&sw.k==="")?" on":"");
-    b.innerHTML='<span class="sp" style="'+(sw.c||"box-shadow:0 1px 3px rgba(0,0,0,.25)")+'"></span>'+sw.n;
-    b.addEventListener("click",e2=>{e2.stopPropagation();applyNodeStyle(sw.k,stScope);closeCtxMenu();});
-    stg.appendChild(b);
-  });
-  m.appendChild(stg);
-  title("노드 모양");
-  const shg=document.createElement("div");shg.className="shGrid";shg.style.maxHeight="26vh";shg.style.overflowY="auto";
-  NODE_SHAPES.forEach(sw=>{
-    const b=document.createElement("button");b.type="button";b.className="stPick"+(n.shape===sw.k||(!n.shape&&sw.k==="")?" on":"");
-    b.innerHTML='<span class="sp" style="'+(sw.c||"border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)")+'"></span>'+sw.n;
-    b.addEventListener("click",e2=>{e2.stopPropagation();applyNodeShape(sw.k,stScope);closeCtxMenu();});
-    shg.appendChild(b);
-  });
-  m.appendChild(shg);
-  title("하위 노드 보기");
-  const vwg=document.createElement("div");vwg.style.cssText="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px 14px 8px";
-  [["","기본(개요)"],["tableRows","표·2열"],["tableCols","표·다열"]].forEach(pair=>{
-    const b=document.createElement("button");b.type="button";b.className="mitem";
-    b.style.cssText="text-align:center;padding:7px 3px;font-size:12px"+((n.view||"")===pair[0]?";background:var(--line);font-weight:700":"");
-    b.textContent=pair[1];
-    b.addEventListener("click",e2=>{e2.stopPropagation();n.view=pair[0];if(pair[0])n.folded=false;save();closeCtxMenu();});
-    vwg.appendChild(b);
-  });
-  m.appendChild(vwg);
-  title("전체 글자 크기");
-  const fsHint=document.createElement("div");
-  fsHint.style.cssText="padding:0 14px 4px;font-size:11.5px;color:var(--muted)";
-  fsHint.textContent="노드 전체에 적용됩니다 · 일부 글자만 키우려면 노드편집에서 드래그 선택하세요";
-  m.appendChild(fsHint);
-  const g=document.createElement("div");
-  g.style.cssText="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 14px 2px";
-  [["보통",0],["작게",12],["크게",17],["더 크게",22]].forEach(pair=>{
-    const b=document.createElement("button");b.className="mitem";
-    b.style.cssText="text-align:center;padding:7px 4px;font-size:13px";
-    b.textContent=pair[0];
-    if((n.fs||0)===pair[1])b.style.background="var(--line)";
-    b.addEventListener("click",()=>{applyNodeFS(pair[1],stScope);closeCtxMenu();});
-    g.appendChild(b);
-  });
-  m.appendChild(g);
-  const wrap=document.createElement("div");wrap.style.cssText="padding:6px 14px 10px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px";
-  [["굵게","bold"],["기울임","italic"],["밑줄","underline"],["취소선","strike"]].forEach(pair=>{
-    const bt=document.createElement("button");bt.className="mitem";
-    bt.style.cssText="text-align:center;padding:7px 4px;font-size:13px";
-    bt.textContent=(n[pair[1]]?"✓ ":"")+pair[0];
-    bt.addEventListener("click",()=>{n[pair[1]]=!n[pair[1]];save();closeCtxMenu();});
-    wrap.appendChild(bt);
-  });
-  m.appendChild(wrap);
-  const cl=document.createElement("button");cl.className="mitem";cl.textContent="닫기";
-  cl.addEventListener("click",e2=>{e2.stopPropagation();closeCtxMenu();});
-  const cw=document.createElement("div");cw.style.cssText="padding:2px 14px 10px";cw.appendChild(cl);
-  m.appendChild(cw);
-  placeMenu(m,e);
-}
 /* ── 카드 유형 선택 팝업 ──
    "카드로 변환"/"하위 전체를 카드로"(우클릭 메뉴)와 카드1장/하위전체(스와이프 액션) 네 곳이
    전부 이 하나를 공유한다. mode:"single"=노드 하나, mode:"subtree"=하위 전체 각 노드마다.
@@ -5419,7 +5577,6 @@ const ctxDefs={
     ["붙여넣기",(tid)=>{nodePaste(tid);}],
     {hr:1},
     {cap:"보기·스타일"},
-    ["노드 스타일 변경",(t1,t2,e3)=>openStyleMenu(t1,e3),"sub"],
     ["하위노드 전체접기",(tid)=>{const n=byId(tid);if(!n)return;collapseBranch(n);render();markDirty();toast("하위 노드를 모두 접었습니다");}],
     ["구조도로 보기",(tid)=>{const n=byId(tid);if(n)openDiagram(n.id);}],
     ["검색 범위로 지정",(tid)=>{if(searchScopeId===tid)clearSearchScope();else setSearchScope(tid);}],
