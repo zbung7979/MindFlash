@@ -968,6 +968,24 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 .plStCard .plRvSumRow .e{color:#3d916a}.plStCard .plRvSumRow .m{color:#b9892a}.plStCard .plRvSumRow .h{color:#c0504d}
 .plStCard .plRvAL,.plForecast .plRvAL{font-size:11.5px;font-weight:700;color:var(--muted)}
 .plStCard .plForecast{border:0;padding:0;margin:0;background:none}
+
+/* 파일 먼저 — 상태 막대·안내 화면 */
+.plFile{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;color:var(--muted);cursor:pointer}
+.plFile i{width:8px;height:8px;border-radius:50%;background:#4fa37a;flex:none}
+.plFile span{flex:1;min-width:0;color:var(--c0t)}
+.plFile em{font-style:normal;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px}
+.plFile.warn{border-color:#c49a3c}.plFile.warn i{background:#c49a3c}
+.plFile.bad{border-color:#c4533c;background:color-mix(in srgb,#c4533c 10%,var(--panel))}.plFile.bad i{background:#c4533c}
+.plFile.bad span{font-weight:700}
+.plFileBtn{border:1px solid var(--line);background:var(--bg);color:var(--c0t);border-radius:10px;padding:5px 11px;font:inherit;font-size:12.5px;font-weight:700;flex:none;min-height:32px}
+.plFile.bad .plFileBtn,.plFile.warn .plFileBtn{border-color:currentColor}
+.plGate{margin:28px 0;padding:22px 18px;border:1px solid var(--line);border-radius:18px;background:var(--panel);display:flex;flex-direction:column;gap:12px;text-align:left}
+.plGateT{font-size:17px;font-weight:800;line-height:1.4}
+.plGateB{font-size:13.5px;line-height:1.7;color:var(--muted);display:flex;flex-direction:column;gap:10px}
+.plGateNote{font-size:12.5px;line-height:1.6;color:var(--muted);background:var(--bg);border-radius:10px;padding:8px 10px}
+.plGateNote.warn{color:var(--c0t);border:1px solid #c49a3c}
+.plGateNote.bad{color:#c4533c;border:1px solid #c4533c}
+.plGate .plBtnRow{flex-direction:column}
 </style>
 </head>
 <body>
@@ -1101,6 +1119,9 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
   <button data-act="plan-home">오늘로 이동</button>
   <button data-act="plan-cats">과목 관리</button>
   <button data-act="plan-dial">다이얼 24시간 ↔ 12시간</button>
+  <div class="hr"></div>
+  <div class="cap">파일</div>
+  <button data-act="plan-file">일과표 파일 (내 컴퓨터에 자동 저장)</button>
   <div class="hr"></div>
   <div class="cap">데이터</div>
   <button data-act="plan-export">내보내기 (JSON)</button>
@@ -9619,7 +9640,7 @@ function reindex(){
 /* ── 저장 ── */
 function saveMeta(){
   const ok=lsSet(K_META,JSON.stringify(meta));
-  metaUnsaved=!ok;if(!ok)warnSave();return ok;
+  metaUnsaved=!ok;if(!ok)warnSave();schedFile();return ok;
 }
 function persistMonths(yms){
   let ok=true;
@@ -9630,10 +9651,11 @@ function persistMonths(yms){
     if(lsSet(K_MON+ym,JSON.stringify({v:SV,days})))unsaved.delete(ym);
     else{unsaved.add(ym);ok=false;}
   }
-  if(!ok)warnSave();return ok;
+  if(!ok)warnSave();schedFile();return ok;
 }
 const persist=dates=>persistMonths(new Set(dates.map(d=>d.slice(0,7))));
 function flush(){ /* 저장 실패분 재시도(탭 숨김/종료 직전에도 호출) */
+  try{fileFlushNow();}catch(e){}
   if(unsaved.size)persistMonths([...unsaved]);
   if(metaUnsaved)saveMeta();
   return !unsaved.size&&!metaUnsaved;
@@ -9660,6 +9682,7 @@ function applySnap(sn){
 }
 function getDay(date){return D[date]||(D[date]={u:0,blocks:[]});}
 function tx(label,dates,fn){
+  if(!canWrite()){gateDenied();return null;}
   makeBak(false);
   const ds=[...new Set(dates)].filter(validDate);
   const before=snap(ds);
@@ -9827,11 +9850,13 @@ function dueIds(today){today=today||ymd(nowMs());return rq.filter(x=>x.due<=toda
 /* ── 타이머: 시작 시각(epoch)만 저장 → 탭을 닫아도, 기기가 잠들어도 경과는 정확 ── */
 function startRun(cat){
   if(meta.run||!catOf(cat))return false;
+  if(!canWrite()){gateDenied();return false;}
   meta.run={cat,t0:nowMs()};return saveMeta();
 }
 function cancelRun(){if(!meta.run)return false;meta.run=null;saveMeta();emit("change",[]);return true;}
 function stopRun(opts){
   opts=opts||{};const r=meta.run;if(!r)return null;
+  if(!canWrite()){gateDenied();return null;}
   const t1=opts.end||nowMs();
   meta.run=null;saveMeta();
   if(t1-r.t0<30000){emit("change",[]);return{blocks:[],discarded:true};}
@@ -9853,20 +9878,20 @@ function downloadText(name,text){
 function exportFile(opts){
   const obj=buildExport(opts);
   downloadText("MindFlash_일과표_"+ymd(nowMs())+((opts&&opts.before)?"_이전기록":"")+".json",JSON.stringify(obj));
-  if(!(opts&&opts.before)){meta.sync=nowMs();saveMeta();}
+  if(!(opts&&opts.before)){meta.sync=nowMs();if(!FSA)meta.dlAt=nowMs();saveMeta();}
   toastSafe("일과표를 JSON으로 내보냈습니다");
   return obj;
 }
 function sameDay(a,b){return JSON.stringify(a.blocks)===JSON.stringify(b.blocks);}
 /* 분석(순수): 어떤 날짜가 새로 생기고/원격이 이기고/로컬이 이기고/충돌인지 */
-function analyze(obj){
+function analyze(obj,syncAt){
   const res={ok:false,err:"",warn:"",items:[],addCats:[],dropped:0};
   if(!obj||typeof obj!=="object"||obj.app!=="mindflash-plan"){res.err="일과표 JSON 파일이 아닙니다";return res;}
   if(typeof obj.v!=="number"){res.err="버전 정보가 없습니다";return res;}
   if(!obj.days||typeof obj.days!=="object"){res.err="기록(days)이 없습니다";return res;}
   if(obj.v>SV)res.warn="더 새로운 버전에서 만든 파일입니다 — 아는 항목만 가져오고 나머지는 보존합니다";
   const before=dropped;dropped=0;
-  const sync=meta.sync||0;
+  const sync=typeof syncAt==='number'?syncAt:(meta.sync||0);
   for(const date of Object.keys(obj.days).sort()){
     if(!validDate(date))continue;
     const rd=normDay(clone(obj.days[date]));if(!rd)continue;
@@ -9909,15 +9934,16 @@ function applyImport(res,choices){
   }
   makeBak(true);
   const stat={added:0,replaced:0,merged:0,kept:keep.length,cats:res.addCats.length};
-  tx("가져오기",dates,()=>{
+  force++;
+  try{tx("가져오기",dates,()=>{
     for(const it of take){
       const pick=it.kind==="conflict"?(choices[it.date]||(it.remote.u>it.local.u?"remote":"local")):"remote";
       if(pick==="both"&&it.local){D[it.date]=unionDay(it.local,it.remote);stat.merged++;}
       else{D[it.date]={u:0,blocks:it.remote.blocks};if(it.local)stat.replaced++;else stat.added++;}
     }
-  });
+  });}finally{force--;}
   if(res.addCats.length){for(const c of res.addCats)meta.cats.push(clone(c));meta.u=nowMs();}
-  meta.sync=nowMs();saveMeta();
+  meta.sync=nowMs();if(!FSA&&!meta.dlAt)meta.dlAt=nowMs();saveMeta();
   emit("change",dates);
   return stat;
 }
@@ -9952,7 +9978,7 @@ async function drvPush(remote,folderId){
     catch(e){if(e.conflict)throw new Error("그 사이 다른 기기에서 또 바뀌었습니다 — 한 번 더 동기화해 주세요 (이 기기의 기록은 그대로입니다)");throw e;}
   }
   drvSave({fileId:res.id,folderId,modifiedTime:res.modifiedTime,ts:Date.now()});
-  meta.sync=nowMs();saveMeta();
+  meta.sync=nowMs();if(!FSA)meta.dlAt=nowMs();saveMeta();
   return res;
 }
 async function driveSyncPlan(){
@@ -10100,6 +10126,149 @@ function openUsageSheet(){
   });
 }
 
+/* ── 로컬 파일 연결(파일 먼저) ──
+   기록의 원본은 사용자의 컴퓨터에 있는 파일이다. 브라우저 저장소(localStorage)는 빠른 작업용 사본일 뿐이다.
+   · 파일을 만들거나 연결하기 전에는 기록을 시작할 수 없다(gateOpen).
+   · 기록이 바뀔 때마다 0.4초 안에 파일에 쓰고, 쓴 뒤 크기를 다시 읽어 확인한다(fileWrite).
+   · 파일 접근 API가 없는 브라우저(휴대폰 등)는 ‘백업 파일 내려받기’를 시작 조건으로 하고, 저장 안 된 변경을 계속 알린다. */
+const K_FH="planFile",K_FNAME="mfplan.fname";
+const FSA=typeof window.showSaveFilePicker==="function"&&typeof window.showOpenFilePicker==="function";
+const FTYPES=[{description:"MindFlash 일과표",accept:{"application/json":[".json"]}}];
+let fh=null,fst="init",pendName="",fSaved=0,fDirty=false,fErr="",fTimer=0,fBusy=false,fAgain=false,fWrites=0,fPend=null,force=0;
+const testBypass=()=>!!window.__PLAN_NOGATE;
+function gateOpen(){return testBypass()||fst==="ok"||fst==="error"||(!FSA&&!!meta.dlAt);}
+function canWrite(){return gateOpen()||force>0;}
+function gateDenied(){toastSafe("먼저 일과표 파일을 만들거나 연결해 주세요");}
+function pendingDays(){const t=meta.dlAt||0;let n=0;for(const d in D)if(D[d].u>t)n++;return n;}
+function fileChanged(){try{render();}catch(e){}try{updateTabBadge();}catch(e){}}
+function fileDoc(){const o=buildExport();o.run=meta.run?clone(meta.run):null;o.file={v:1,saved:new Date(nowMs()).toISOString()};return o;}
+function schedFile(now){
+  if(!fh||(fst!=="ok"&&fst!=="error"))return;
+  fDirty=true;updateFileBar();
+  if(now){clearTimeout(fTimer);fTimer=0;fileWrite();return;}
+  if(fTimer)return;
+  fTimer=setTimeout(()=>{fTimer=0;fileWrite();},400);
+}
+function fileFlushNow(){if(fh&&(fst==="ok"||fst==="error")&&(fDirty||fTimer)){clearTimeout(fTimer);fTimer=0;fileWrite();}}
+async function fileWrite(){
+  if(!fh)return false;
+  if(fBusy){fAgain=true;return false;}
+  fBusy=true;let ok=false;
+  try{
+    do{
+      fAgain=false;fDirty=false;
+      const T=nowMs(),text=JSON.stringify(fileDoc());
+      const w=await fh.createWritable();
+      try{await w.write(text);await w.close();}catch(e){try{await w.abort();}catch(_){}throw e;}
+      const f=await fh.getFile();
+      if(f.size!==new Blob([text]).size)throw new Error("저장 확인 실패(파일 크기가 다릅니다)");
+      fSaved=Date.now();fWrites++;meta.fsync=T;lsSet(K_META,JSON.stringify(meta));
+    }while(fAgain);
+    ok=true;fErr="";
+    if(fst==="error"){fst="ok";fBusy=false;fileChanged();}
+  }catch(e){
+    fDirty=true;fErr=(e&&e.message)||String(e);
+    if(fst==="ok"){fst="error";fBusy=false;fileChanged();}
+  }
+  finally{fBusy=false;}
+  updateFileBar();
+  return ok;
+}
+function fileRefuse(msg,keep){
+  fErr=msg;fPend=null;
+  if(keep&&keep.h){fh=keep.h;pendName=keep.h.name||"";fst="need-perm";}
+  else{fh=null;pendName="";fst="none";}
+  fileChanged();toastSafe(msg);return{ok:false,err:msg};
+}
+function fileAdoptMeta(obj){ /* 파일의 과목·설정이 더 새로우면 채택(브라우저 저장소가 비었을 때의 복구) */
+  const m=obj&&obj.meta;if(m&&Array.isArray(m.cats)&&(Number(m.u)||0)>(meta.u||0)){
+    const cats=clone(m.cats).filter(c=>c&&typeof c.id==="string"&&typeof c.name==="string");
+    const used=new Set();for(const d in D)for(const b of D[d].blocks)used.add(b.cat);
+    for(const c of meta.cats)if(used.has(c.id)&&!cats.some(x=>x.id===c.id))cats.push(c);
+    meta.cats=cats;if(m.set&&typeof m.set==="object")meta.set=Object.assign({},meta.set,m.set);
+    meta.u=Number(m.u)||0;normMeta();saveMeta();
+  }
+  if(obj&&obj.run&&!meta.run&&!Object.keys(D).length&&obj.run.t0&&obj.run.t0<=nowMs()){meta.run=clone(obj.run);normMeta();saveMeta();}
+}
+async function fileAttach(h,quiet){
+  let text="";
+  try{const f=await h.getFile();text=await f.text();}
+  catch(e){return fileRefuse("파일을 읽지 못했습니다 — "+((e&&e.message)||e),quiet?{h}:null);}
+  let obj=null;
+  if(text.trim()){
+    try{obj=JSON.parse(text);}catch(e){return fileRefuse("이 파일은 일과표 JSON이 아니어서 연결하지 않았습니다. 파일은 그대로입니다.",quiet?{h}:null);}
+    if(!obj||obj.app!=="mindflash-plan")return fileRefuse("MindFlash 일과표 파일이 아니어서 연결하지 않았습니다. 파일은 그대로입니다.",quiet?{h}:null);
+  }
+  if(obj){
+    fileAdoptMeta(obj);
+    const res=analyze(obj,meta.fsync||0);
+    if(!res.ok)return fileRefuse(res.err,quiet?{h}:null);
+    if(res.items.some(i=>i.kind==="conflict")){
+      fPend={h,res};pendName=h.name||"";fh=null;fst="resolve";fileChanged();fileResolve();return{ok:false,pending:true};
+    }
+    if(res.items.length){
+      const st=applyImport(res,{});
+      if(st&&(st.added||st.replaced))toastSafe("파일에서 "+(st.added+st.replaced)+"일치 기록을 불러왔습니다");
+    }
+  }
+  return fileFinish(h,quiet);
+}
+function fileResolve(){
+  if(!fPend)return;const p=fPend;
+  openImportSheet(p.res,()=>{fPend=null;fileFinish(p.h,false);});
+}
+async function fileFinish(h,quiet){
+  try{await idbSet(K_FH,h);}catch(e){}
+  lsSet(K_FNAME,h.name||"");
+  fh=h;pendName="";fPend=null;fst="ok";fErr="";
+  const ok=await fileWrite();
+  if(!ok){const m=fErr;fh=null;fst="none";fErr="파일에 쓰지 못했습니다 — "+m;fileChanged();toastSafe(fErr);return{ok:false,err:fErr};}
+  fileChanged();
+  if(!quiet)toastSafe("일과표 파일에 연결했습니다 — "+h.name+" · 이제 기록할 때마다 자동 저장됩니다");
+  return{ok:true};
+}
+async function fileCreate(){
+  if(!FSA){exportFile();fileChanged();return true;}
+  let h;
+  try{h=await window.showSaveFilePicker({id:"mf-plan",suggestedName:"MindFlash_일과표.json",types:FTYPES});}
+  catch(e){if(!(e&&e.name==="AbortError"))toastSafe("파일을 만들지 못했습니다 — "+((e&&e.message)||e));return false;}
+  const r=await fileAttach(h,false);return !!(r&&(r.ok||r.pending));
+}
+async function fileOpen(){
+  if(!FSA){document.getElementById("planImportInput").click();return false;}
+  let hs;
+  try{hs=await window.showOpenFilePicker({id:"mf-plan",multiple:false,types:FTYPES});}
+  catch(e){if(!(e&&e.name==="AbortError"))toastSafe("파일을 열지 못했습니다 — "+((e&&e.message)||e));return false;}
+  if(!hs||!hs[0])return false;
+  const r=await fileAttach(hs[0],false);return !!(r&&(r.ok||r.pending));
+}
+async function fileRegrant(){
+  const h=fh;if(!h)return fileOpen();
+  let p="denied";try{p=await h.requestPermission({mode:"readwrite"});}catch(e){}
+  if(p!=="granted"){toastSafe("파일 접근을 허용해야 기록할 수 있습니다");return false;}
+  const r=await fileAttach(h,false);return !!(r&&r.ok);
+}
+async function fileSaveNow(){
+  if(!FSA){exportFile();fileChanged();return true;}
+  if(!fh||(fst!=="ok"&&fst!=="error")){toastSafe("연결된 파일이 없습니다");return false;}
+  clearTimeout(fTimer);fTimer=0;
+  const ok=await fileWrite();
+  toastSafe(ok?"파일에 저장했습니다":"저장하지 못했습니다 — "+fErr);
+  return ok;
+}
+async function fileBoot(){
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+  if(!FSA){fst="none";fileChanged();return;}
+  let h=null;try{h=await idbGet(K_FH);}catch(e){}
+  if(!h||typeof h.queryPermission!=="function"){fst="none";fileChanged();return;}
+  fh=h;pendName=h.name||"";
+  let p="prompt";try{p=await h.queryPermission({mode:"readwrite"});}catch(e){}
+  if(p==="granted")await fileAttach(h,true);
+  else{fst="need-perm";fh=h;fileChanged();}
+}
+setInterval(()=>{if(fh&&fst==="error")fileWrite();},20000);
+addEventListener("beforeunload",e=>{if(FSA&&fh&&(fDirty||fBusy||fst==="error")){e.preventDefault();e.returnValue="";}});
+
 /* ── 화면: 날짜 막대 · 다이얼 · 기록(타이머/빠른 기록) · 요약 · 타임라인 ── */
 const view={date:null,half:null,sel:null,drag:null,busy:0};
 const DW=["일","월","화","수","목","금","토"];
@@ -10245,18 +10414,85 @@ function recordHTML(){
     '<div class="plRecLabel">방금 공부한 시간 <span class="plMuted">· 누르면 지금까지로 바로 기록</span></div>'+
     '<div class="plChips">'+QUICK.map(m=>'<button type="button" class="plChip q" data-quick="'+m+'">'+m+'분</button>').join("")+'<button type="button" class="plChip q" data-act="manual">직접 입력</button></div></div>';
 }
+/* ── 파일 먼저: 안내 화면·상태 막대·파일 시트 ── */
+const hmOf=t=>{const d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes());};
+function fileBarHTML(){
+  if(testBypass())return"";
+  if(FSA){
+    if(fst==="ok"){
+      const busy=fBusy||fDirty;
+      return'<div class="plFile ok" id="plFileBar" data-act="file-sheet"><i></i><span>'+(busy?"저장 중…":"파일에 저장됨 · "+hmOf(fSaved))+'</span><em>'+esc(fh?fh.name:"")+'</em></div>';
+    }
+    if(fst==="error")return'<div class="plFile bad" id="plFileBar"><i></i><span>파일에 저장하지 못했습니다 — 기록은 이 브라우저에만 있습니다</span><button type="button" class="plFileBtn" data-act="file-regrant">다시 연결</button></div>';
+    return"";
+  }
+  const n=pendingDays(),stale=n>0&&Date.now()-(meta.dlAt||0)>86400000;
+  return'<div class="plFile '+(n?(stale?"bad":"warn"):"ok")+'" id="plFileBar" data-act="file-sheet"><i></i><span>'+(n?"파일에 저장 안 된 기록 "+n+"일치":"백업 파일 저장됨")+'</span><button type="button" class="plFileBtn" data-act="file-save">지금 저장</button></div>';
+}
+function updateFileBar(){const el=document.getElementById("plFileBar");if(el&&el.parentNode)el.outerHTML=fileBarHTML();}
+function gateHTML(){
+  let blocks=0,days=0;for(const d in D){days++;blocks+=D[d].blocks.length;}
+  const ex=blocks?'<div class="plGateNote">이 브라우저에 이미 있는 기록 '+blocks+'건('+days+'일)도 파일에 함께 담깁니다.</div>':"";
+  const run=meta.run?'<div class="plGateNote warn">진행 중이던 타이머('+esc(nameOf(meta.run.cat))+')가 있습니다. 파일을 연결하면 이어서 기록할 수 있어요.</div>':"";
+  const err=fErr?'<div class="plGateNote bad">'+esc(fErr)+'</div>':"";
+  let t,body,btns;
+  if(fst==="init"&&FSA){t="일과표 파일을 확인하는 중…";body="";btns="";}
+  else if(fst==="resolve"){
+    t="파일과 이 브라우저의 기록이 서로 달라요";
+    body="같은 날짜를 양쪽에서 모두 고쳤습니다. 날짜별로 어느 쪽을 쓸지 고르면 이어서 쓸 수 있어요. 고르기 전에는 파일에 아무것도 쓰지 않습니다.";
+    btns='<button type="button" class="plBtn go" data-act="file-resolve">선택하러 가기</button>';
+  }else if(fst==="need-perm"){
+    t="‘"+esc(pendName||"일과표 파일")+"’ 파일에 다시 연결하세요";
+    body="브라우저는 보안 때문에 앱을 새로 열 때마다 파일 접근을 다시 확인합니다. 아래 버튼을 눌러 허용하면 바로 이어서 기록할 수 있어요.";
+    btns='<button type="button" class="plBtn go" data-act="file-regrant">허용하고 이어서 쓰기</button><button type="button" class="plBtn ghost" data-act="file-open">다른 파일 열기</button>';
+  }else if(FSA){
+    t="먼저 일과표 파일을 만들어 주세요";
+    body="기록을 브라우저 안에만 두면 브라우저 정리나 주소 변경으로 사라질 수 있어요. 그래서 내 컴퓨터의 파일에 기록할 때마다 바로 저장합니다. 파일을 만들거나 연결해야 기록을 시작할 수 있어요.";
+    btns='<button type="button" class="plBtn go" data-act="file-create">새 일과표 파일 만들기</button><button type="button" class="plBtn ghost" data-act="file-open">기존 파일 열기</button>';
+    body+='<div class="plGateNote">이전에 만든 파일이 있으면 ‘기존 파일 열기’로 연결하세요. 만들기에서 같은 이름을 골라도 파일 안의 기록은 지워지지 않고 합쳐집니다.</div>';
+  }else{
+    t="기록을 시작하기 전에 백업 파일을 먼저 받아 두세요";
+    body="이 브라우저(휴대폰 등)는 파일에 자동으로 저장할 수 없어요. 대신 시작 전에 파일을 한 번 내려받으면 시작할 수 있고, 그 뒤 기록이 쌓이면 위쪽 막대에서 ‘지금 저장’을 계속 알려 드립니다. 기록할 때마다 자동으로 파일에 저장되길 원하면 컴퓨터의 Chrome·Edge로 여세요.";
+    btns='<button type="button" class="plBtn go" data-act="file-create">백업 파일 받고 시작</button><button type="button" class="plBtn ghost" data-act="file-open">기존 파일 가져오기</button>';
+    if(typeof driveAuth!=="undefined"&&driveAuth.available())body+='<div class="plGateNote">구글 드라이브 동기화(메뉴 ⋮)로 올려 두어도 시작할 수 있어요.</div>';
+  }
+  return'<div class="plGate"><div class="plGateT">'+t+'</div>'+(body?'<div class="plGateB">'+body+'</div>':"")+run+ex+err+(btns?'<div class="plBtnRow">'+btns+'</div>':"")+'</div>';
+}
+function openFileSheet(){
+  const rel=t=>t?hmOf(t):"아직 없음";
+  let h;
+  if(FSA){
+    const on=fst==="ok"||fst==="error";
+    h='<div class="plUsage"><div><b>연결된 파일</b> '+esc(on&&fh?fh.name:(pendName||"없음"))+'</div>'+
+      '<div><b>마지막 저장</b> '+(on?rel(fSaved):"—")+(fDirty?' <i>(저장 대기 중)</i>':"")+'</div>'+
+      (fst==="error"?'<div class="plWarn">저장 실패: '+esc(fErr)+'</div>':"")+'</div>'+
+      '<div class="plSheetNote">기록이 바뀔 때마다 이 파일에 자동 저장합니다. 파일을 다른 곳(클라우드 폴더 등)에 두면 그대로 백업도 됩니다.</div>'+
+      '<div class="plSheetBtns"><button type="button" id="plFSave" class="plPrimary">지금 저장</button><button type="button" id="plFNew">새 파일 만들기</button><button type="button" id="plFOpen">기존 파일 열기</button></div>';
+  }else{
+    h='<div class="plUsage"><div><b>마지막 백업 파일</b> '+(meta.dlAt?fmtDate(ymd(meta.dlAt))+" "+hmOf(meta.dlAt):"아직 없음")+'</div>'+
+      '<div><b>저장 안 된 기록</b> '+pendingDays()+'일치</div></div>'+
+      '<div class="plSheetNote">이 브라우저는 파일에 자동 저장을 지원하지 않습니다. 기록한 뒤에는 ‘지금 저장’으로 파일을 내려받아 두세요.</div>'+
+      '<div class="plSheetBtns"><button type="button" id="plFSave" class="plPrimary">지금 저장(파일 받기)</button><button type="button" id="plFOpen">파일 가져오기</button></div>';
+  }
+  const body=openSheet("일과표 파일",h);
+  const q=id=>body.querySelector(id);
+  q("#plFSave").addEventListener("click",async()=>{await fileSaveNow();closeSheet();});
+  if(q("#plFNew"))q("#plFNew").addEventListener("click",()=>{closeSheet();fileCreate();});
+  q("#plFOpen").addEventListener("click",()=>{closeSheet();fileOpen();});
+}
 function render(){
   const root=document.getElementById("planRoot");if(!root)return;
+  if(!gateOpen()){root.innerHTML=gateHTML();updateTabBadge();return;}
   if(!view.date)view.date=todayStr();
   if(!view.mode)view.mode="day";
   if(!view.month)view.month=todayStr().slice(0,7);
   if(!view.sel||!catOf(view.sel)||catOf(view.sel).x)view.sel=(meta.set.lastCat&&catOf(meta.set.lastCat)&&!catOf(meta.set.lastCat).x)?meta.set.lastCat:(visCats()[0]||{}).id||null;
   const modeBar='<div class="plModes">'+MODES.map(m=>'<button type="button" data-mode="'+m[0]+'" class="'+(view.mode===m[0]?"on":"")+'">'+m[1]+'</button>').join("")+'</div>';
-  if(view.mode==="month"){root.innerHTML=modeBar+monthHTML();updateTabBadge();return;}
-  if(view.mode==="stats"){root.innerHTML=modeBar+statsHTML();updateTabBadge();return;}
+  if(view.mode==="month"){root.innerHTML=fileBarHTML()+modeBar+monthHTML();updateTabBadge();return;}
+  if(view.mode==="stats"){root.innerHTML=fileBarHTML()+modeBar+statsHTML();updateTabBadge();return;}
   const date=view.date,isToday=date===todayStr(),rl=relLabel(date);
   const W=win();
-  root.innerHTML=modeBar+
+  root.innerHTML=fileBarHTML()+modeBar+
    '<div class="plBar2"><button type="button" class="plNav" data-act="prev" aria-label="이전 날">‹</button>'+
    '<label class="plDate"><span class="plDateTxt">'+fmtDate(date)+'</span>'+(rl?'<span class="plRel">'+rl+'</span>':'')+'<input type="date" id="plDatePick" value="'+date+'" max="'+todayStr()+'"></label>'+
    '<button type="button" class="plNav" data-act="next" aria-label="다음 날"'+(isToday?" disabled":"")+'>›</button>'+
@@ -10287,7 +10523,7 @@ function tick(){
     const cb=document.getElementById("plCenterBig");if(cb)cb.textContent=fmtElapsed(nowMs()-meta.run.t0);
   }
   if(nm!==lastMin){
-    lastMin=nm;
+    lastMin=nm;try{updateFileBar();}catch(e){}
     if(view.date===t&&!view.drag){
       const W=win();
       if(!meta.set.h24&&view.half==null&&(nm>=720?1:0)!==W.half){render();return;}
@@ -10930,6 +11166,12 @@ function uiBind(){
     else if(act==="cancel-run"){cancelRun();render();toastSafe("타이머를 취소했습니다");}
     else if(act==="manual")blockSheet({date:view.date});
     else if(act==="cats")catsSheet();
+    else if(act==="file-create")fileCreate();
+    else if(act==="file-open")fileOpen();
+    else if(act==="file-regrant")fileRegrant();
+    else if(act==="file-save")fileSaveNow();
+    else if(act==="file-sheet")openFileSheet();
+    else if(act==="file-resolve")fileResolve();
     else if(act==="rv-start")startReview();
     else if(act==="to-cards")setTab("cards");
     else if(act==="rv-more"){rev.extra+=5;render();}
@@ -10964,6 +11206,7 @@ function bindUI(){
     else if(a==="plan-import")document.getElementById("planImportInput").click();
     else if(a==="plan-usage")openUsageSheet();
     else if(a==="plan-drive")driveSyncPlan();
+    else if(a==="plan-file")openFileSheet();
   });
   uiBind();uiBoot();
   const inp=document.getElementById("planImportInput");
@@ -10998,6 +11241,8 @@ const api={
   addCat,updateCat,removeCat,setSet,
   buildExport,exportFile,analyze,applyImport,importFile,
   usage,purgeBefore,restoreBak,flush,
+  fileCreate,fileOpen,fileRegrant,fileSaveNow,openFileSheet,fileBoot,
+  get file(){return{fsa:FSA,state:fst,name:fh?fh.name:(pendName||lsGet(K_FNAME)||""),saved:fSaved,dirty:fDirty,err:fErr,writes:fWrites,dlAt:meta.dlAt||0,pending:pendingDays()};},
   openUsageSheet,openImportSheet,closeSheet,driveSyncPlan,drvLoad,
   on,
   /* 읽기 전용 접근 */
@@ -11011,6 +11256,7 @@ const api={
   get view(){return view;},afterPick,memoToCards,convertSheet,linkSheet,mapJump,openLink,progressDue,cardDueFor,get rev(){return rev;},reviewPlan,startReview,updateTabBadge,reviewForecast,dayTotal,blockSheet,catsSheet,quickRecord,doStart,doStop,tick,render:()=>render()
 };
 load();
+fileBoot();
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindUI);else bindUI();
 return api;
 })();
