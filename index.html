@@ -1372,7 +1372,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <button type="button" id="edFzDown" title="선택한 글자만 작게 (Ctrl+Shift+,)">A▾</button>
         <button type="button" id="edFzUp" title="선택한 글자만 크게 (Ctrl+Shift+.)">A▴</button>
         <span class="efDiv"></span>
-        <button type="button" id="edHlToggle" title="형광펜 (Ctrl+Shift+H: 마지막 색으로 바로 적용)">🖍</button>
+        <button type="button" id="edHlToggle" title="형광펜 (Ctrl+D: 마지막 색으로 바로 적용)">🖍</button>
         <span class="efDiv"></span>
         <button type="button" id="edRefLink" title="선택한 글자를 다른 노드(조문)로 연결 — 메모에서만">🔗 연결</button>
       </div>
@@ -1658,7 +1658,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         <button type="button" id="fcEdFzDown" title="선택한 글자만 작게 (Ctrl+Shift+,)">A▾</button>
         <button type="button" id="fcEdFzUp" title="선택한 글자만 크게 (Ctrl+Shift+.)">A▴</button>
         <span class="efDiv"></span>
-        <button type="button" id="fcEdHlToggle" title="형광펜 (Ctrl+Shift+H: 마지막 색으로 바로 적용)">🖍</button>
+        <button type="button" id="fcEdHlToggle" title="형광펜 (Ctrl+D: 마지막 색으로 바로 적용)">🖍</button>
       </div>
       <div id="fcEdFloatHl">
         <button type="button" class="fcEdSw" data-c="#F20970" title="밝은 색" style="background:#F20970"></button>
@@ -4611,8 +4611,8 @@ function edSelCap(f){
 }
 ["edText","edNote"].forEach(id=>{const f=$(id);["select","keyup","mouseup","click","focus","touchend"].forEach(ev=>f.addEventListener(ev,()=>edSelCap(f)));f.addEventListener("blur",()=>updateEdCarets());});
 document.addEventListener("selectionchange",()=>{const ae=document.activeElement;if(ae&&(ae.id==="edText"||ae.id==="edNote"))edSelCap(ae);});
-/* 형광펜 색 하나를 실제로 적용하는 로직 - 스와치 클릭과 Ctrl+Shift+H 단축키가 공유한다.
-   Ctrl+Shift+H는 마지막으로 쓴 색을 곧바로 다시 칠해줘서(edLastHlColor), 실제 형광펜처럼
+/* 형광펜 색 하나를 실제로 적용하는 로직 - 스와치 클릭과 Ctrl+D 단축키가 공유한다.
+   Ctrl+D는 마지막으로 쓴 색을 곧바로 다시 칠해줘서(edLastHlColor), 실제 형광펜처럼
    색상 팔레트를 매번 열지 않고도 빠르게 반복 적용할 수 있다. */
 let edLastHlColor="#FCA000";
 function edApplyHighlight(color){
@@ -4663,6 +4663,7 @@ document.querySelectorAll(".edSw").forEach(b=>{
 /* 서식 키보드 단축키: 노드/메모 입력창에 포커스가 있고 텍스트를 드래그 선택한 상태에서만 동작.
    Ctrl+B/I/U는 워드·오피스 표준 그대로, 취소선·글자크기·형광펜은 표준 단축키가 따로 없어
    비슷한 걸 새로 정했다(각 버튼에 마우스를 올리면 툴팁으로도 확인 가능).
+   형광펜은 Ctrl+D(브라우저의 ‘북마크 추가’ 기본동작은 편집창 안에서 막는다).
    주의: Ctrl+U는 크롬/엣지가 "페이지 소스 보기"로 예약해둔 단축키라 브라우저에 따라
    이 핸들러까지 안 오고 브라우저가 먼저 가로챌 수 있다 — 그럴 땐 밑줄 버튼을 직접 눌러야 한다. */
 $("editModal").addEventListener("keydown",e=>{
@@ -4682,7 +4683,7 @@ $("editModal").addEventListener("keydown",e=>{
   else if(e.shiftKey&&k==="x"){e.preventDefault();edApplyStyleToggle("x","취소선");}
   else if(e.shiftKey&&(e.code==="Period"||k===">"||k===".")){e.preventDefault();edApplyFontSize(1,"크게");}
   else if(e.shiftKey&&(e.code==="Comma"||k==="<"||k===",")){e.preventDefault();edApplyFontSize(-1,"작게");}
-  else if(e.shiftKey&&k==="h"){e.preventDefault();edApplyHighlight(edLastHlColor);}
+  else if(!e.shiftKey&&k==="d"){e.preventDefault();edApplyHighlight(edLastHlColor);}
 });
 /* ── 선택 시 뜨는 서식 툴바: 위치 계산·표시 ── */
 function edFloatPositionBar(){
@@ -8375,7 +8376,7 @@ $("fcEdA").addEventListener("input",()=>{
   fcEdAIdleTimer=setTimeout(()=>{if(!$("fcEdA").ceComposing)renderFcEdACE();},700);
 });
 $("fcEdA").addEventListener("compositionend",()=>{fcEdASyncModel();});
-/* 형광펜 색 적용 — 스와치 클릭과 Ctrl+Shift+H 단축키가 공유(노드 편집기의 edApplyHighlight와 동일 구조). */
+/* 형광펜 색 적용 — 스와치 클릭과 Ctrl+D 단축키가 공유(노드 편집기의 edApplyHighlight와 동일 구조). */
 let fcEdLastHlColor="#FCA000";
 function fcApplyHighlight(color){
   if(fcEdIdx<0||!deck)return;
@@ -8480,7 +8481,7 @@ $("fcCardModal").addEventListener("keydown",e=>{
   else if(e.shiftKey&&k==="x"){e.preventDefault();fcApplyStyleToggle("x","취소선");}
   else if(e.shiftKey&&(e.code==="Period"||k===">"||k===".")){e.preventDefault();fcApplyFontSize(1,"크게");}
   else if(e.shiftKey&&(e.code==="Comma"||k==="<"||k===",")){e.preventDefault();fcApplyFontSize(-1,"작게");}
-  else if(e.shiftKey&&k==="h"){e.preventDefault();fcApplyHighlight(fcEdLastHlColor);}
+  else if(!e.shiftKey&&k==="d"){e.preventDefault();fcApplyHighlight(fcEdLastHlColor);}
 });
 /* ── 카드 편집: 이모지/링크/이미지 토글 — 한 번에 하나만 펼쳐짐 (노드 편집기의 edUtilToggle과 동일 구조) ── */
 function fcEdUtilCloseAll(){
