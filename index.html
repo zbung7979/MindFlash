@@ -986,6 +986,31 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 .plGateNote.warn{color:var(--c0t);border:1px solid #c49a3c}
 .plGateNote.bad{color:#c4533c;border:1px solid #c4533c}
 .plGate .plBtnRow{flex-direction:column}
+
+/* 하루 보기 전환(원형 | 시간표) + 시간표(캘린더) */
+.plLay{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}
+.plLaySeg{display:inline-flex;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:2px}
+.plLaySeg button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:700;padding:6px 16px;border-radius:10px;min-height:32px}
+.plLaySeg button.on{background:var(--chev);color:#fff}
+.plLayTot{font-size:12.5px;color:var(--muted)}.plLayTot b{color:var(--c0t)}
+.plGridWrap{position:relative;height:clamp(320px,64vh,600px);overflow-y:auto;overflow-x:hidden;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.plGrid{position:relative;user-select:none;-webkit-user-select:none}
+.plGHr{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--line)}
+.plGHr span{position:absolute;left:0;top:-8px;width:56px;text-align:right;padding-right:6px;white-space:nowrap;font-size:10.5px;line-height:16px;color:var(--muted);background:var(--panel)}
+.plGCol{position:absolute;left:62px;right:6px;top:0;bottom:0;touch-action:pan-y;cursor:crosshair}
+.plGB{position:absolute;box-sizing:border-box;border-radius:7px;background:var(--bc);color:#fff;padding:3px 6px;overflow:hidden;font-size:12px;line-height:1.3;cursor:pointer;display:flex;flex-direction:column;gap:1px;box-shadow:0 0 0 1px var(--panel)}
+.plGB b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plGB span{font-size:11px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plGB.rv{background:color-mix(in srgb,var(--bc) 30%,var(--panel));color:var(--c0t);border-left:4px solid var(--bc)}
+.plGB.rest{opacity:.6}
+.plGB.live{background:repeating-linear-gradient(135deg,var(--bc),var(--bc) 8px,color-mix(in srgb,var(--bc) 78%,#fff) 8px,color-mix(in srgb,var(--bc) 78%,#fff) 16px)}
+.plGNow{position:absolute;left:56px;right:0;height:0;border-top:2px solid #e0523f;pointer-events:none;z-index:3}
+.plGNow i{position:absolute;left:-5px;top:-6px;width:10px;height:10px;border-radius:50%;background:#e0523f}
+.plGPrev{position:absolute;left:0;right:0;border:2px solid var(--chev);background:color-mix(in srgb,var(--chev) 22%,transparent);border-radius:7px;pointer-events:none;z-index:2;box-sizing:border-box}
+.plGPrev span{position:absolute;left:6px;top:2px;font-size:11.5px;font-weight:700;color:var(--chev);white-space:nowrap;background:color-mix(in srgb,var(--panel) 80%,transparent);border-radius:5px;padding:0 4px}
+.plGPrev::before,.plGPrev::after{content:"";position:absolute;right:18px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--chev)}
+.plGPrev::before{top:-6px}.plGPrev::after{bottom:-6px}
+.plGPrev[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -4908,10 +4933,11 @@ function markDirty(){
   else setDirtyMark();
 }
 let sessionTimer=null,lastOpenExt="mm",lastOpenName="";
-function persistSession(){
+const MF_SAFE=/[?&]safe=1\b/.test(location.search);   /* 진단용 주소(?safe=1): 탭을 닫을 때 도는 저장 처리를 모두 끈다 */
+function persistSession(skipHandle){
   if(!model)return;
   idbSet("session",{name:titles.reader||lastOpenName||"제목 없음",ext:lastOpenExt,content:toMM(),ts:Date.now()});
-  if(fileHandle)idbSet("fhandle",fileHandle);
+  if(fileHandle&&!skipHandle)idbSet("fhandle",fileHandle);   /* 닫히는 순간에는 파일 핸들을 IndexedDB에 복제하지 않는다(열 때·저장할 때 이미 기록됨) */
 }
 function scheduleSession(){clearTimeout(sessionTimer);sessionTimer=setTimeout(persistSession,800);}
 /* 탭이 백그라운드로 가거나(모바일에서 홈 화면으로 나가는 경우 등) 닫히는 순간,
@@ -4919,9 +4945,11 @@ function scheduleSession(){clearTimeout(sessionTimer);sessionTimer=setTimeout(pe
    디바운스 도중 브라우저가 탭을 정지/폐기하면 그 타이머가 끝내 실행되지 못해
    마지막 편집분이 사라질 수 있었다. visibilitychange(hidden)와 pagehide 둘 다
    걸어서, 둘 중 먼저 오는 신호에서 즉시 저장한다. */
-function flushSessionNow(){if(model){clearTimeout(sessionTimer);persistSession();}}
+function flushSessionNow(){if(model){clearTimeout(sessionTimer);persistSession(true);}}
+if(!MF_SAFE){
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){flushSessionNow();flushFcSessionNow();}});
 addEventListener("pagehide",()=>{flushSessionNow();flushFcSessionNow();});
+}
 /* 탭/브라우저를 완전히 닫으려 할 때 — 마지막 드라이브 백업 이후 내용이 바뀐 게
    있으면 브라우저 자체의 "이 페이지를 나가시겠습니까?" 경고를 띄운다. 이 경고창은
    브라우저가 직접 그리는 것이라 문구나 버튼("백업하기" 같은)을 우리가 마음대로
@@ -4929,7 +4957,7 @@ addEventListener("pagehide",()=>{flushSessionNow();flushFcSessionNow();});
    백업 못 한 채로 나가는 걸 한 번은 막아준다. 편집 내용 자체는 이 경고와 별개로
    이미 몇 초마다 이 기기에 자동 저장되고 있으니, 그래도 닫으면 다음에 열 때
    그대로 복원된다. */
-addEventListener("beforeunload",e=>{
+if(!MF_SAFE)addEventListener("beforeunload",e=>{
   const dirty=driveIsDirtySinceBackup("map")||driveIsDirtySinceBackup("cards");
   if(!dirty)return;
   e.preventDefault();
@@ -9576,6 +9604,7 @@ function normMeta(){
   if(!meta.set||typeof meta.set!=="object")meta.set={};
   if(typeof meta.set.h24!=="boolean")meta.set.h24=true;
   if(!(meta.set.cap>=1))meta.set.cap=10;
+  if(meta.set.vw!=="grid")meta.set.vw="dial";   /* 하루 보기: 원형(dial) | 시간표(grid) */
   if(!meta.run||typeof meta.run!=="object"||!meta.run.t0||typeof meta.run.cat!=="string")meta.run=null;
   meta.sync=Number(meta.sync)||0;meta.u=Number(meta.u)||0;
 }
@@ -9656,7 +9685,6 @@ function persistMonths(yms){
 }
 const persist=dates=>persistMonths(new Set(dates.map(d=>d.slice(0,7))));
 function flush(){ /* 저장 실패분 재시도(탭 숨김/종료 직전에도 호출) */
-  try{fileFlushNow();}catch(e){}
   if(unsaved.size)persistMonths([...unsaved]);
   if(metaUnsaved)saveMeta();
   return !unsaved.size&&!metaUnsaved;
@@ -10136,7 +10164,8 @@ const K_FH="planFile",K_FNAME="mfplan.fname";
 const FSA=typeof window.showSaveFilePicker==="function"&&typeof window.showOpenFilePicker==="function";
 const FTYPES=[{description:"MindFlash 일과표",accept:{"application/json":[".json"]}}];
 let fh=null,fst="init",pendName="",fSaved=0,fDirty=false,fErr="",fTimer=0,fBusy=false,fAgain=false,fWrites=0,fPend=null,force=0;
-const testBypass=()=>!!window.__PLAN_NOGATE;
+const SAFE=/[?&]safe=1\b/.test(location.search);   /* 진단용: ?safe=1 이면 닫을 때 도는 처리·파일 접근을 모두 끈다 */
+const testBypass=()=>!!window.__PLAN_NOGATE||SAFE;
 function gateOpen(){return testBypass()||fst==="ok"||fst==="error"||(!FSA&&!!meta.dlAt);}
 function canWrite(){return gateOpen()||force>0;}
 function gateDenied(){toastSafe("먼저 일과표 파일을 만들거나 연결해 주세요");}
@@ -10148,7 +10177,7 @@ function schedFile(now){
   fDirty=true;updateFileBar();
   if(now){clearTimeout(fTimer);fTimer=0;fileWrite();return;}
   if(fTimer)return;
-  fTimer=setTimeout(()=>{fTimer=0;fileWrite();},400);
+  fTimer=setTimeout(()=>{fTimer=0;fileWrite();},150);
 }
 function fileFlushNow(){if(fh&&(fst==="ok"||fst==="error")&&(fDirty||fTimer)){clearTimeout(fTimer);fTimer=0;fileWrite();}}
 async function fileWrite(){
@@ -10259,7 +10288,7 @@ async function fileSaveNow(){
 }
 async function fileBoot(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
-  if(!FSA){fst="none";fileChanged();return;}
+  if(!FSA||SAFE){fst="none";fileChanged();return;}
   let h=null;try{h=await idbGet(K_FH);}catch(e){}
   if(!h||typeof h.queryPermission!=="function"){fst="none";fileChanged();return;}
   fh=h;pendName=h.name||"";
@@ -10268,7 +10297,7 @@ async function fileBoot(){
   else{fst="need-perm";fh=h;fileChanged();}
 }
 setInterval(()=>{if(fh&&fst==="error")fileWrite();},20000);
-addEventListener("beforeunload",e=>{if(FSA&&fh&&(fDirty||fBusy||fst==="error")){e.preventDefault();e.returnValue="";}});
+if(!SAFE)addEventListener("beforeunload",e=>{if(FSA&&fh&&(fDirty||fBusy||fst==="error")){e.preventDefault();e.returnValue="";}});
 
 /* ── 화면: 날짜 막대 · 다이얼 · 기록(타이머/빠른 기록) · 요약 · 타임라인 ── */
 const view={date:null,half:null,sel:null,drag:null,busy:0};
@@ -10367,6 +10396,119 @@ function dialSVG(){
   }
   return h+'</svg>';
 }
+/* ── 시간표(캘린더) 보기: 구글 캘린더 ‘일’ 보기와 같은 세로 시간 눈금 ──
+   같은 데이터를 다른 모양으로 보여 줄 뿐이다. 블록 탭=편집, 빈 곳 드래그(터치는 길게 눌러 드래그)=그 시간 기록,
+   빈 곳 탭=30분 칸 기록(지난 시간만). */
+const GH=52;                                  /* 1시간 높이(px) */
+const gpx=m=>m*GH/60;
+const hourLabel=h=>h===0?"오전 12시":h<12?"오전 "+h+"시":h===12?"오후 12시":"오후 "+(h-12)+"시";   /* 구글 캘린더처럼 오전/오후 표기 */
+function gridClusters(bl){
+  const sorted=bl.slice().sort((a,b)=>a.s-b.s||a.e-b.e),out=[];let cur=[],end=-1;
+  for(const b of sorted){if(cur.length&&b.s>=end){out.push(cur);cur=[];end=-1;}cur.push(b);end=Math.max(end,b.e);}
+  if(cur.length)out.push(cur);
+  return out;
+}
+function gridAutoTop(bl){
+  if(view.date===todayStr())return Math.max(0,gpx(minNow()-120));
+  const first=bl.length?Math.min(...bl.map(b=>b.s)):420;
+  return Math.max(0,gpx(first-60));
+}
+function gridHTML(){
+  const date=view.date,bl=dayBlocks(date),live=liveSeg();
+  let h='<div class="plGridWrap" id="plGridWrap"><div class="plGrid" id="plGrid" style="height:'+(GH*24)+'px">';
+  for(let i=0;i<24;i++)h+='<div class="plGHr" style="top:'+(i*GH)+'px"><span>'+(i?hourLabel(i):"")+'</span></div>';
+  h+='<div class="plGCol" id="plGCol">';
+  for(const cl of gridClusters(bl)){
+    const {items,lanes}=assignLanes(cl);
+    for(const {b,k} of items){
+      const hh=Math.max(14,gpx(b.e-b.s)-1),w=100/lanes;
+      h+='<div class="plGB'+(b.k==="r"?" rv":"")+(isRest(b.cat)?" rest":"")+'" data-id="'+esc(b.id)+'" style="top:'+f1(gpx(b.s))+'px;height:'+f1(hh)+'px;left:calc('+f1(k*w)+'% + 1px);width:calc('+f1(w)+'% - 3px);--bc:'+colorOf(b.cat)+'">'+
+        '<b>'+(b.k==="r"?"복습 · ":"")+esc(nameOf(b.cat))+'</b>'+(hh>=34?'<span>'+fmtHM(b.s)+'–'+fmtHM(b.e)+(b.scope?' · '+esc(b.scope):'')+'</span>':'')+'</div>';
+    }
+  }
+  if(live)h+='<div class="plGB live" id="plGLive" style="top:'+f1(gpx(live.s))+'px;height:'+f1(Math.max(14,gpx(live.e-live.s)))+'px;left:1px;width:calc(100% - 3px);--bc:'+colorOf(live.cat)+'"><b>'+esc(nameOf(live.cat))+' · 공부 중</b></div>';
+  h+='<div class="plGPrev" id="plGPrev" hidden><span></span></div>';
+  h+='</div>';
+  if(date===todayStr())h+='<div class="plGNow" id="plGNow" style="top:'+f1(gpx(minNow()))+'px"><i></i></div>';
+  return h+'</div></div>';
+}
+function layBarHTML(){
+  const g=meta.set.vw==="grid",study=unionMin(studyBlocks(view.date));
+  return'<div class="plLay"><div class="plLaySeg"><button type="button" data-lay="dial" class="'+(g?"":"on")+'">원형</button><button type="button" data-lay="grid" class="'+(g?"on":"")+'">시간표</button></div>'+
+    (g?'<span class="plLayTot">'+(view.date===todayStr()?"오늘 ":"")+'공부 <b>'+(study?fmtMin(study):"0분")+'</b></span>':"")+'</div>';
+}
+function gridMin(ev){
+  const g=document.getElementById("plGrid");if(!g)return null;
+  const r=g.getBoundingClientRect();
+  return Math.max(0,Math.min(1440,(ev.clientY-r.top)/GH*60));
+}
+function gridPrev(a,b){
+  const p=document.getElementById("plGPrev");if(!p)return;
+  if(a==null){p.hidden=true;return;}
+  const s=Math.min(a,b),e=Math.max(a,b);
+  if(e-s<1){p.hidden=true;return;}
+  p.hidden=false;p.style.top=f1(gpx(s))+"px";p.style.height=f1(gpx(e-s))+"px";
+  p.firstChild.textContent=fmtHM(s)+"–"+fmtHM(e)+" · "+fmtMin(e-s);
+}
+function bindGrid(root){
+  let st=null,auto=0;
+  const endDrag=()=>{if(st&&st.timer)clearTimeout(st.timer);clearInterval(auto);auto=0;st=null;view.drag=null;gridPrev(null);};
+  const activate=()=>{
+    if(!st||st.active)return;
+    st.active=true;view.drag=st;
+    const col=document.getElementById("plGCol");try{col.setPointerCapture(st.id);}catch(e){}
+    if(st.touch&&navigator.vibrate)try{navigator.vibrate(15);}catch(e){}
+    gridPrev(st.m0,st.m1);
+    auto=setInterval(()=>{ /* 가장자리로 끌면 자동 스크롤 */
+      if(!st||!st.active)return;
+      const w=document.getElementById("plGridWrap");if(!w)return;
+      const r=w.getBoundingClientRect();let dy=0;
+      if(st.y1<r.top+34)dy=-10;else if(st.y1>r.bottom-34)dy=10;
+      if(!dy)return;
+      w.scrollTop+=dy;
+      const m=gridMin({clientY:st.y1});if(m==null)return;
+      st.m1=snap5(m);gridPrev(st.m0,st.m1);
+    },30);
+  };
+  root.addEventListener("pointerdown",ev=>{
+    const col=ev.target.closest&&ev.target.closest("#plGCol");if(!col)return;
+    if(ev.target.closest(".plGB"))return;
+    if(ev.pointerType==="mouse"&&ev.button!==0)return;
+    const m=gridMin(ev);if(m==null)return;
+    st={id:ev.pointerId,x:ev.clientX,y:ev.clientY,y1:ev.clientY,m0:snap5(m),m1:snap5(m),active:false,touch:ev.pointerType!=="mouse",timer:null};
+    if(st.touch)st.timer=setTimeout(activate,350);
+  });
+  root.addEventListener("pointermove",ev=>{
+    if(!st||ev.pointerId!==st.id)return;
+    st.y1=ev.clientY;
+    if(!st.active){
+      if(Math.hypot(ev.clientX-st.x,ev.clientY-st.y)>(st.touch?8:6)){
+        if(st.touch){endDrag();return;}            /* 길게 누르기 전에 움직이면 스크롤 */
+        activate();
+      }else return;
+    }
+    const m=gridMin(ev);if(m==null)return;
+    st.m1=snap5(m);gridPrev(st.m0,st.m1);
+  });
+  const finish=ev=>{
+    if(!st||ev.pointerId!==st.id)return;
+    const was=st.active;let a=Math.min(st.m0,st.m1),z=Math.max(st.m0,st.m1);
+    const m0=st.m0;endDrag();
+    if(was)view.swallowClick=Date.now();
+    if(z-a<5){a=Math.floor(m0/30)*30;z=a+30;}     /* 탭(또는 제자리 길게 누름) = 30분 칸 */
+    if(view.date===todayStr()){
+      const nm=minNow();
+      if(a>=nm){toastSafe("지난 시간만 기록할 수 있습니다");return;}
+      if(z>nm)z=nm;
+      if(z-a<1){toastSafe("지난 시간만 기록할 수 있습니다");return;}
+    }
+    blockSheet({date:view.date,s:a,e:Math.min(1440,z)});
+  };
+  root.addEventListener("pointerup",finish);
+  root.addEventListener("pointercancel",ev=>{if(st&&ev.pointerId===st.id)endDrag();});
+  root.addEventListener("scroll",ev=>{if(ev.target&&ev.target.id==="plGridWrap")view.gridTop=ev.target.scrollTop;},true);
+}
+
 function fmtElapsed(ms){
   const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;
   return(h?h+":"+pad(m):pad(m))+":"+pad(r);
@@ -10498,13 +10640,20 @@ function render(){
    '<label class="plDate"><span class="plDateTxt">'+fmtDate(date)+'</span>'+(rl?'<span class="plRel">'+rl+'</span>':'')+'<input type="date" id="plDatePick" value="'+date+'" max="'+todayStr()+'"></label>'+
    '<button type="button" class="plNav" data-act="next" aria-label="다음 날"'+(isToday?" disabled":"")+'>›</button>'+
    (isToday?'':'<button type="button" class="plToday" data-act="today">오늘</button>')+'</div>'+
+   layBarHTML()+
+   (meta.set.vw==="grid"?gridHTML():
    '<div class="plDialWrap">'+dialSVG()+'</div>'+
-   (!meta.set.h24?'<div class="plHalf"><button type="button" data-half="0" class="'+(W.half===0?"on":"")+'">오전</button><button type="button" data-half="1" class="'+(W.half===1?"on":"")+'">오후</button></div>':'')+
+   (!meta.set.h24?'<div class="plHalf"><button type="button" data-half="0" class="'+(W.half===0?"on":"")+'">오전</button><button type="button" data-half="1" class="'+(W.half===1?"on":"")+'">오후</button></div>':''))+
    summaryHTML(date)+
    rvCardHTML()+cardDueHTML()+forecastHTML(true)+
    recordHTML()+
    '<div class="plSecHead"><b>'+(isToday?"오늘의 기록":fmtDate(date)+" 기록")+'</b><button type="button" class="plLink" data-act="manual">＋ 직접 기록</button></div>'+
    '<div class="plTimeline" id="plTimeline">'+timelineHTML(date)+'</div>';
+  const gw=document.getElementById("plGridWrap");
+  if(gw){
+    if(view.gridDate!==view.date||view.gridTop==null){view.gridDate=view.date;view.gridTop=gridAutoTop(dayBlocks(view.date));}
+    gw.scrollTop=view.gridTop;
+  }
   updateTabBadge();
 }
 /* 매초: 바뀐 글자·조각만 갱신(전체를 다시 그리면 누르던 버튼이 사라지는 문제를 막는다) */
@@ -10522,9 +10671,12 @@ function tick(){
   if(meta.run){
     const el=document.getElementById("plElapsed");if(el)el.textContent=fmtElapsed(nowMs()-meta.run.t0);
     const cb=document.getElementById("plCenterBig");if(cb)cb.textContent=fmtElapsed(nowMs()-meta.run.t0);
+    const gl=document.getElementById("plGLive"),lv0=liveSeg();
+    if(gl&&lv0){gl.style.top=f1(gpx(lv0.s))+"px";gl.style.height=f1(Math.max(14,gpx(lv0.e-lv0.s)))+"px";}
   }
   if(nm!==lastMin){
     lastMin=nm;try{updateFileBar();}catch(e){}
+    const gn=document.getElementById("plGNow");if(gn&&view.date===t)gn.style.top=f1(gpx(nm))+"px";
     if(view.date===t&&!view.drag){
       const W=win();
       if(!meta.set.h24&&view.half==null&&(nm>=720?1:0)!==W.half){render();return;}
@@ -11147,6 +11299,8 @@ function uiBind(){
     const t=ev.target;
     if(t.closest&&t.closest(".plDate")){const i=document.getElementById("plDatePick");try{if(i&&i.showPicker)i.showPicker();}catch(e){}return;}
     const sec=t.closest&&t.closest(".plSec");if(sec){blockSheet({id:sec.dataset.id});return;}
+    const gb=t.closest&&t.closest(".plGB");if(gb){if(gb.dataset.id)blockSheet({id:gb.dataset.id});return;}
+    const ly=t.closest&&t.closest("[data-lay]");if(ly){setSet({vw:ly.dataset.lay});return;}
     const row=t.closest(".plRow");if(row){blockSheet({id:row.dataset.id});return;}
     const cat=t.closest("[data-cat]");if(cat){view.sel=cat.dataset.cat;root.querySelectorAll("[data-cat]").forEach(x=>x.classList.toggle("on",x===cat));return;}
     const rvc=t.closest("[data-rv]");if(rvc){startReview(rvc.dataset.rv);return;}
@@ -11180,7 +11334,7 @@ function uiBind(){
   root.addEventListener("change",ev=>{
     if(ev.target.id==="plDatePick"){const v=ev.target.value;if(validDate(v)&&v<=todayStr()){view.date=v;view.half=null;render();}}
   });
-  bindDial(root);
+  bindDial(root);bindGrid(root);
   if(sheetEl||ensureSheet()){
     new MutationObserver(()=>{if(sheetEl.classList.contains("hidden"))onSheetClosed();}).observe(sheetEl,{attributes:true,attributeFilter:["class"]});
   }
@@ -11221,8 +11375,7 @@ function bindUI(){
     if(k==="z"&&!e.shiftKey){e.preventDefault();undo();}
     else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo();}
   });
-  addEventListener("pagehide",flush);
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush();});
+  if(!SAFE){addEventListener("pagehide",flush);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush();});}
   addEventListener("storage",e=>{
     if(!e.key||e.key.indexOf("mfplan.")!==0||e.key===K_BAK||e.key.indexOf(K_COR)===0)return;
     load();undoSt=[];redoSt=[];emit("reload");
