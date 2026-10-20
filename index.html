@@ -603,6 +603,20 @@ body:has(#ttsBar:not(.hidden)) #toast{bottom:58px}
 #fcNav button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);border-radius:12px;padding:11px 18px;background:var(--panel);font-size:14px;font-weight:500;color:var(--c0t)}
 #fcNav button:hover{background:var(--rowhover)}
 #fcNav button.on{border-color:var(--chev);color:var(--chev);font-weight:700}
+.pgHide,.pgHide *{color:transparent!important;user-select:none;-webkit-user-select:none}
+#fcStepBar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+#fcStepBar .stLbl{font-weight:700}
+#fcStepBar .stChips{display:inline-flex;gap:6px}
+#fcStepBar .stChip{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);color:#111;font-size:12px;font-weight:700;padding:0;cursor:pointer;opacity:.35;transition:opacity .15s,transform .15s}
+#fcStepBar .stChip.on{opacity:1}
+#fcStepBar .stChip.cur{transform:scale(1.18);box-shadow:0 0 0 2px var(--chev)}
+#fcStepBar .stBtns button{border:1px solid var(--line);background:var(--panel);color:var(--c0t);border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer;margin-left:4px}
+.fprogTag{flex:none;font-size:10px;font-weight:700;border-radius:8px;padding:1px 6px;margin-right:6px;background:var(--chev);color:#fff}
+#fcEdProgRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)}
+#fcEdProg{border:1px solid var(--line);background:var(--bg);color:var(--c0t);border-radius:10px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+#fcEdProg.on{background:var(--chev);color:#fff;border-color:var(--chev)}
+#fcEdProgInfo .pgdot{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;text-align:center;color:#111;font-weight:700;font-size:11px;margin:0 3px 0 2px}
+#edFloatHl button.edSw[data-lv]::after,#fcEdFloatHl button.fcEdSw[data-lv]::after{content:attr(data-lv);font-size:10px;font-weight:700;line-height:20px;color:#fff;text-shadow:0 0 2px #000,0 0 3px #000;pointer-events:none}
 #fcHint{text-align:center;font-size:12px;color:var(--muted);margin-top:14px}
 @media (prefers-reduced-motion:no-preference){.tw svg,.fchev svg{transition:transform .15s ease}}
 /* ── 하나씩 학습하기: 좁은(모바일) 화면 정리 ──
@@ -1276,6 +1290,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
           <div id="fcFaceA" class="fface fa"><span class="ftag">답</span><div class="stxt" id="fcATxt"></div></div>
         </div>
       </div>
+      <div id="fcStepBar" style="display:none"></div>
       <div id="fcGrade">
         <button id="fcGradeAgain" class="again" title="다시 — 처음부터(1일 뒤) 다시 복습">다시</button>
         <button id="fcGradeGood" class="good" title="보통 — 평소 간격대로 다음 복습일을 잡음">보통</button>
@@ -1674,6 +1689,10 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
         </div>
       </div>
       <div id="fcEdSelHint" style="margin-top:6px;font-size:12px;color:var(--muted)">문제나 답에서 드래그하면 부분 스타일이 적용됩니다 · Esc로 닫기</div>
+      <div id="fcEdProgRow">
+        <button type="button" id="fcEdProg" aria-pressed="false" title="켜면 답의 형광펜 색 순서(0~7순위)대로 한 단계씩 공개됩니다">순차 공개</button>
+        <span id="fcEdProgInfo"></span>
+      </div>
       <div id="fcEdFloatBar">
         <button type="button" id="fcEdBold" title="굵게 (Ctrl+B)">굵게</button>
         <button type="button" id="fcEdItalic" title="기울임 (Ctrl+I)">기울임</button>
@@ -2894,8 +2913,19 @@ function clozeCardsForNode(n){
    클로즈는 0~N장) — 이렇게 통일해두면 단일 노드 변환과 하위 전체 변환, 그리고 여러
    유형을 한 번에 섞어 만드는 것까지 전부 같은 방식으로 다룰 수 있다. mark는 "cutBoundary"
    유형에서만 쓰인다(다른 유형은 무시). */
+/* 순차 공개 카드 — 노드 텍스트가 문제, 메모가 답. 메모에 "팔레트 색" 형광펜이 하나라도
+   있어야 카드가 된다(색의 열 번호가 공개 순위). 형광펜/서식 범위는 오프셋 변환 없이 그대로
+   옮겨 두 쪽의 서식이 유지되고, 학습 화면에서는 순위가 높은 구간이 가려졌다가 하나씩 열린다. */
+function progCardsForNode(n){
+  const note=n.note||"";
+  if(!note.trim())return[];
+  const ok=(n.hlr||[]).some(r=>r.t&&r.e>r.s&&r.s<note.length&&hlLevel(r.c)>=0);
+  if(!ok)return[];
+  return [fcCard({q:n.text,a:note,done:false,prog:true,hlr:n.hlr||[],sr:n.sr||[]})];
+}
 function cardsFromNodeByType(n,type,mark){
   if(type==="cloze")return clozeCardsForNode(n);
+  if(type==="prog")return progCardsForNode(n);
   if(type==="cutBoundary")return cardsFromNodeCutBoundary(n,mark);
   if(type==="parentChild"){const c=cardFromNodeParentChild(n);return c?[c]:[];}
   if(type==="noteOnly"){const c=cardFromNodeNoteOnly(n);return c?[c]:[];}
@@ -2924,6 +2954,7 @@ function cardsForNodePrioritized(n,types,mark){
   const tier1=[];
   if(has("cutBoundary"))tier1.push(...cardsFromNodeByType(n,"cutBoundary",mark));
   if(has("cloze"))tier1.push(...cardsFromNodeByType(n,"cloze",mark));
+  if(has("prog"))tier1.push(...cardsFromNodeByType(n,"prog",mark));
   if(tier1.length){out.push(...tier1);return out;}
   if(has("noteOnly")){
     const c2=cardsFromNodeByType(n,"noteOnly",mark);
@@ -3120,8 +3151,14 @@ function underlineTextColor(hex){const hsl=hexToHsl(hex);if(!hsl)return "";const
 /* 형광펜 16색 — 밝은 8색 + 진한 8색 */
 const HL_BRIGHT=["#F20970","#FCA000","#EEFC00","#95FC00","#01FC00","#00FCF7","#0097FC","#B00AF2"];
 const HL_DEEP=["#C2185B","#D2691E","#B8860B","#6EA41B","#1E8C3A","#0E8E90","#1565C0","#6A1B9A"];
+/* ═══ 순차 공개(우선순위) ═══
+   형광펜 팔레트의 "열 번호"(밝은 줄·진한 줄 둘 다 왼쪽부터 0~7)가 곧 공개 순위다.
+   팔레트 밖의 색(직접 고른 색 등)은 순위가 없는 일반 형광펜으로 취급한다(= 처음부터 보임). */
+function hlLevel(col){const s=String(col||"").trim().toLowerCase();let i=HL_BRIGHT.findIndex(x=>x.toLowerCase()===s);if(i<0)i=HL_DEEP.findIndex(x=>x.toLowerCase()===s);return i;}
+function progLevels(c){const set=new Set();((c&&c.hlr)||[]).forEach(r=>{if(r&&r.t&&r.e>r.s){const l=hlLevel(r.c);if(l>=0)set.add(l);}});return [...set].sort((a,b)=>a-b);}
+function progCounts(c){const m={};((c&&c.hlr)||[]).forEach(r=>{if(r&&r.t&&r.e>r.s){const l=hlLevel(r.c);if(l>=0)m[l]=(m[l]||0)+1;}});return m;}
 
-function richRangeHtml(text,kind,hlrs,srs,base){text=String(text??"");const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");const bounds=new Set([0,text.length]);(hlrs||[]).forEach(r=>{if((r.t?1:0)===kind){bounds.add(Math.max(0,Math.min(text.length,r.s)));bounds.add(Math.max(0,Math.min(text.length,r.e)));}});(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&(r.b||r.i||r.u||r.x||r.z)){bounds.add(Math.max(0,Math.min(text.length,r.s)));bounds.add(Math.max(0,Math.min(text.length,r.e)));}});const matches=[];if(q){const src=text.toLowerCase(),needle=q.toLowerCase();let pos=0;while(needle&&(pos=src.indexOf(needle,pos))>=0){matches.push([pos,pos+needle.length]);bounds.add(pos);bounds.add(pos+needle.length);pos+=needle.length||1;}}const pts=[...bounds].filter(n=>isFinite(n)).sort((a,b)=>a-b);let out="";for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];if(b<=a)continue;let html=esc(text.slice(a,b));if(matches.some(m=>a>=m[0]&&b<=m[1]))html="<mark>"+html+"</mark>";let bg="",hkAttr="";(hlrs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e)bg=r.c;});const st=[];if(bg){st.push("background:"+bg,"border-radius:4px","padding:0 3px");const hc=hlInk(bg);if(hc)st.push("color:"+hc);hkAttr=hlInkKind(bg);}const act={b:!!(base&&base.bold),i:!!(base&&base.italic),u:!!(base&&base.underline),x:!!(base&&base.strike)};(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e){if(r.b)act.b=true;if(r.i)act.i=true;if(r.u)act.u=true;if(r.x)act.x=true;}});if(act.b)st.push("font-weight:700");if(act.i)st.push("font-style:italic");const deco=[act.u?"underline":"",act.x?"line-through":""].filter(Boolean).join(" ");if(deco)st.push("text-decoration:"+deco);let zz=0;(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e&&r.z)zz=r.z;});if(zz)st.push("font-size:"+szEm(zz)+"em");out+=st.length?'<span'+(hkAttr?' data-hlk="'+hkAttr+'"':'')+' style="'+st.join(';')+'">'+html+'</span>':html;}return out||markHtml(text);}
+function richRangeHtml(text,kind,hlrs,srs,base,pg){text=String(text??"");const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");const bounds=new Set([0,text.length]);(hlrs||[]).forEach(r=>{if((r.t?1:0)===kind){bounds.add(Math.max(0,Math.min(text.length,r.s)));bounds.add(Math.max(0,Math.min(text.length,r.e)));}});(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&(r.b||r.i||r.u||r.x||r.z)){bounds.add(Math.max(0,Math.min(text.length,r.s)));bounds.add(Math.max(0,Math.min(text.length,r.e)));}});const matches=[];if(q){const src=text.toLowerCase(),needle=q.toLowerCase();let pos=0;while(needle&&(pos=src.indexOf(needle,pos))>=0){matches.push([pos,pos+needle.length]);bounds.add(pos);bounds.add(pos+needle.length);pos+=needle.length||1;}}const pts=[...bounds].filter(n=>isFinite(n)).sort((a,b)=>a-b);let out="";for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];if(b<=a)continue;let html=esc(text.slice(a,b));if(matches.some(m=>a>=m[0]&&b<=m[1]))html="<mark>"+html+"</mark>";let bg="",hkAttr="",pgHide=false;(hlrs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e)bg=r.c;});const st=[];if(bg){st.push("background:"+bg,"border-radius:4px","padding:0 3px");const hc=hlInk(bg);if(hc)st.push("color:"+hc);hkAttr=hlInkKind(bg);if(kind===1&&typeof pg==="number"&&hlLevel(bg)>pg){st.push("color:transparent");pgHide=true;hkAttr="";}}const act={b:!!(base&&base.bold),i:!!(base&&base.italic),u:!!(base&&base.underline),x:!!(base&&base.strike)};(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e){if(r.b)act.b=true;if(r.i)act.i=true;if(r.u)act.u=true;if(r.x)act.x=true;}});if(act.b)st.push("font-weight:700");if(act.i)st.push("font-style:italic");const deco=[act.u?"underline":"",act.x?"line-through":""].filter(Boolean).join(" ");if(deco)st.push("text-decoration:"+deco);let zz=0;(srs||[]).forEach(r=>{if((r.t?1:0)===kind&&a>=r.s&&b<=r.e&&r.z)zz=r.z;});if(zz)st.push("font-size:"+szEm(zz)+"em");out+=st.length?'<span'+(pgHide?' class="pgHide"':'')+(hkAttr?' data-hlk="'+hkAttr+'"':'')+' style="'+st.join(';')+'">'+html+'</span>':html;}return out||markHtml(text);}
 function hlRangeHtml(text,kind,rs){return richRangeHtml(text,kind,rs,[],null);}
 function previewEmpty(msg){return '<span style="color:var(--muted)">'+msg+'</span>';}
 /* ── 부분 글자 크기(선택 영역) ── */
@@ -3422,7 +3459,17 @@ function fieldUndoApply(id,dir){
 function fieldUndo(id){fieldUndoApply(id,-1);}
 function fieldRedo(id){fieldUndoApply(id,1);}
 function renderEditPreviews(){const n=byId(editingId);if(!n)return;$("edTextPreview").innerHTML=$("edText").value?richRangeHtml($("edText").value,0,n.hlr,n.sr,n):previewEmpty("노드 미리보기");padCaretPreviewEol($("edTextPreview"));edLiveGrow("edText");syncScrollPair("edText","edTextPreview");if(!$("edNote").ceComposing)renderNoteCE();renderEditSelectionUi();edUtilSync();updateEdCarets();}
-function renderFcEditPreviews(){if(fcEdIdx<0||!deck||!deck.cards[fcEdIdx])return;if(!$("fcEdQ").ceComposing)renderFcEdQCE();if(!$("fcEdA").ceComposing)renderFcEdACE();renderFcEditSelectionUi();fcEdUtilSync();}
+function fcEdProgSync(){
+  const btn=$("fcEdProg"),info=$("fcEdProgInfo");if(!btn||!info)return;
+  if(fcEdIdx<0||!deck||!deck.cards[fcEdIdx])return;
+  const c=deck.cards[fcEdIdx],on=!!c.prog;
+  btn.classList.toggle("on",on);btn.setAttribute("aria-pressed",on?"true":"false");
+  const cnt=progCounts(c),lv=Object.keys(cnt).map(Number).sort((a,b)=>a-b);
+  if(!on){info.textContent="켜면 답에 칠한 형광펜 색의 순위(팔레트 왼쪽부터 0~7)대로 한 단계씩 공개됩니다";return;}
+  if(!lv.length){info.textContent="답에서 글을 드래그해 형광펜(팔레트 색)을 칠하면 그 색의 순위로 공개됩니다";return;}
+  info.innerHTML='공개 순서 '+lv.map(l=>'<span class="pgdot" style="background:'+HL_BRIGHT[l]+'">'+l+'</span>'+cnt[l]+'곳').join(' → ')+' · 색을 바꿔 칠하면 순위가 바뀝니다';
+}
+function renderFcEditPreviews(){if(fcEdIdx<0||!deck||!deck.cards[fcEdIdx])return;if(!$("fcEdQ").ceComposing)renderFcEdQCE();if(!$("fcEdA").ceComposing)renderFcEdACE();renderFcEditSelectionUi();fcEdUtilSync();fcEdProgSync();}
 $("fcEdTabQ").addEventListener("click",()=>switchFcEdTab("q"));
 $("fcEdTabA").addEventListener("click",()=>switchFcEdTab("a"));
 function nodeEditorRange(consume){if(consume===undefined)consume=true;const tE=$("edText"),nE=$("edNote");let rng=null,kind=0;try{const tS=tE.selectionEnd>tE.selectionStart,nS=nE.selectionEnd>nE.selectionStart;if(edSnap&&(edSnap.nS||edSnap.tS)){if(edSnap.nS&&edSnap.tS){const ae2=document.activeElement;if(ae2===tE){rng=edSnap.tS;kind=0;}else{rng=edSnap.nS;kind=1;}}else if(edSnap.nS){rng=edSnap.nS;kind=1;}else{rng=edSnap.tS;kind=0;}}else{const rec=edLastField?edSelRec[edLastField]:null;if(edLastField==="edNote"&&((rec&&rec.e>rec.s)||nS)){rng=(rec&&rec.e>rec.s)?[rec.s,rec.e]:[nE.selectionStart,nE.selectionEnd];kind=1;}else if(edLastField==="edText"&&((rec&&rec.e>rec.s)||tS)){rng=(rec&&rec.e>rec.s)?[rec.s,rec.e]:[tE.selectionStart,tE.selectionEnd];kind=0;}else if(tS){rng=[tE.selectionStart,tE.selectionEnd];kind=0;}else if(nS){rng=[nE.selectionStart,nE.selectionEnd];kind=1;}else if(edLastSel){rng=[edLastSel.s,edLastSel.e];kind=edLastSel.k;}}}catch(e){}if(consume)edSnap=null;if(!rng||rng[1]<=rng[0])return null;return{t:kind,s:Math.min(rng[0],rng[1]),e:Math.max(rng[0],rng[1])};}
@@ -4402,7 +4449,7 @@ function fcCard(raw){
      b/i/u/x가 전부 false인 범위(글자 크기만 바꾼 구간)는 z가 없으면 normalizeSR()의
      "뭐라도 켜져 있어야 유지" 필터에 걸려 통째로 사라져 버렸다. 카드 유형 변환에서
      노드의 sr을 그대로 복사해 넣을 때 이 문제가 바로 드러나므로 여기서 함께 수정. */
-  return {q:String(c.q??""),a:String(c.a??""),done:!!c.done,link:String(c.link??""),image:String(c.image??""),color:String(c.color??""),fs:+c.fs||0,bold:!!c.bold,italic:!!c.italic,underline:!!c.underline,strike:!!c.strike,bg:String(c.bg??""),hl:String(c.hl??""),st:String(c.st??""),shape:String(c.shape??""),ef:+c.ef||2.5,ivl:+c.ivl||0,reps:+c.reps||0,lapses:+c.lapses||0,due:String(c.due??""),last:String(c.last??""),hlr:Array.isArray(c.hlr)?c.hlr.map(r=>({t:r&&r.t?1:0,s:+(r&&r.s||0),e:+(r&&r.e||0),c:String(r&&r.c||"")})).filter(r=>isFinite(r.s)&&isFinite(r.e)&&r.e>r.s&&r.c):[],sr:normalizeSR(Array.isArray(c.sr)?c.sr.map(r=>({t:r&&r.t?1:0,s:+(r&&r.s||0),e:+(r&&r.e||0),b:!!(r&&r.b),i:!!(r&&r.i),u:!!(r&&r.u),x:!!(r&&r.x),z:+(r&&r.z)||0})):[])};
+  return {q:String(c.q??""),a:String(c.a??""),done:!!c.done,link:String(c.link??""),image:String(c.image??""),color:String(c.color??""),fs:+c.fs||0,bold:!!c.bold,italic:!!c.italic,underline:!!c.underline,strike:!!c.strike,bg:String(c.bg??""),hl:String(c.hl??""),st:String(c.st??""),shape:String(c.shape??""),ef:+c.ef||2.5,ivl:+c.ivl||0,reps:+c.reps||0,lapses:+c.lapses||0,due:String(c.due??""),last:String(c.last??""),prog:!!c.prog,hlr:Array.isArray(c.hlr)?c.hlr.map(r=>({t:r&&r.t?1:0,s:+(r&&r.s||0),e:+(r&&r.e||0),c:String(r&&r.c||"")})).filter(r=>isFinite(r.s)&&isFinite(r.e)&&r.e>r.s&&r.c):[],sr:normalizeSR(Array.isArray(c.sr)?c.sr.map(r=>({t:r&&r.t?1:0,s:+(r&&r.s||0),e:+(r&&r.e||0),b:!!(r&&r.b),i:!!(r&&r.i),u:!!(r&&r.u),x:!!(r&&r.x),z:+(r&&r.z)||0})):[])};
 }
 function fcNormDeck(){if(deck&&Array.isArray(deck.cards))deck.cards=deck.cards.map(fcCard);}
 function fcApplyTextStyle(el,c){if(!el||!c)return;el.style.color=c.color||"";el.style.fontSize=c.fs?(c.fs+"px"):"";el.style.fontWeight=c.bold?"700":"";el.style.fontStyle=c.italic?"italic":"";el.style.textDecoration=[c.underline?"underline":"",c.strike?"line-through":""].filter(Boolean).join(" ")||"";if(c.hl){el.style.background=c.hl;el.style.borderRadius="4px";el.style.padding="0 3px";const hc=hlInk(c.hl);if(hc)el.style.color=hc;const hk=hlInkKind(c.hl);if(hk)el.setAttribute("data-hlk",hk);}else{el.style.background="";el.style.borderRadius="";el.style.padding="";}}
@@ -4438,7 +4485,7 @@ function applyCardShape(shapeKey,scope,i){
   fcRender();scheduleFcUndo();
   toast(shapeKey?("카드 모양 적용 — "+(scope==="all"?"전체 덱 ":"선택 카드 ")+targets.length+"장"):("카드 모양을 기본으로 되돌렸습니다 ("+targets.length+"장)"));
 }
-function fcFaceHtml(text,c,kind){let out=richRangeHtml(text,kind,c.hlr,c.sr,c);if(c.image)out+='<img class="fthumb" data-open-img="1" src="'+escA(c.image)+'" alt="첨부 이미지">';if(c.link)out+='<button class="flink" data-open-link="1">링크 열기</button>';return out;}
+function fcFaceHtml(text,c,kind,pg){let out=richRangeHtml(text,kind,c.hlr,c.sr,c,pg);if(c.image)out+='<img class="fthumb" data-open-img="1" src="'+escA(c.image)+'" alt="첨부 이미지">';if(c.link)out+='<button class="flink" data-open-link="1">링크 열기</button>';return out;}
 function fcOpenLink(i){const c=deck&&deck.cards[i];if(!c||!c.link){toast("저장된 링크가 없습니다");return;}window.open(/^https?:\/\//i.test(c.link)?c.link:"https://"+c.link,"_blank","noopener");}
 function fcBindMediaScope(scope,i){if(!scope)return;scope.querySelectorAll("[data-open-link]").forEach(b=>b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();fcOpenLink(i);}));scope.querySelectorAll("[data-open-img]").forEach(img=>img.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();$("lightboxImg").src=deck.cards[i].image;$("lightbox").classList.remove("hidden");}));}
 function fcSelectionTargets(i){const out=[];const item=document.querySelector('.fitem[data-i="'+i+'"]');if(item){const qEl=item.querySelector(".fqtext"),aEl=item.querySelector(".ftxt");if(qEl)out.push([qEl,0]);if(aEl)out.push([aEl,1]);}if(fcView==="study"&&deck&&fcOrder.length&&fcOrder[fcIdx]===i){if($("fcQTxt"))out.push([$("fcQTxt"),0]);if($("fcATxt"))out.push([$("fcATxt"),1]);}return out;}
@@ -5427,7 +5474,7 @@ function fcOpenByName(nm){
   const rec=loadFcRecents().find(x=>x.name===nm);
   if(!rec)return false;
   try{
-    const cards=fcParseAny(rec.content,rec.ext).map(c=>fcCard({q:c.q||"",a:c.a||"",done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,hlr:c.hlr}));
+    const cards=fcParseAny(rec.content,rec.ext).map(c=>fcCard({q:c.q||"",a:c.a||"",done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,hlr:c.hlr,prog:c.prog}));
     deck={name:nm,cards:cards.length?cards:[fcCard({q:"",a:"",done:false})]};
     fcAfterLoad(false);
     return true;
@@ -5849,7 +5896,8 @@ const CARD_TYPE_LIST=[
   ["parentChild","상위 노드 - 하위 노드"],
   ["noteOnly","노드 - 메모"],
   ["cutBoundary","경계 나누기 · 기준 단어를 입력해 메모를 나눔"],
-  ["cloze","빈칸 채우기(클로즈) · 형광펜 친 부분을 빈칸으로"]
+  ["cloze","빈칸 채우기(클로즈) · 형광펜 친 부분을 빈칸으로"],
+  ["prog","순차 공개 · 메모의 형광펜 색 순서(0~7순위)대로 답을 하나씩 공개"]
 ];
 /* "경계 나누기"는 노드마다 미리 지정해두지 않고, 여기서 카드를 만드는 바로 그 순간에
    기준 글자/단어를 한 번 입력받는다(체크하면 바로 아래에 입력창이 펼쳐진다). 같은
@@ -5983,6 +6031,7 @@ const ctxDefs={
     {cap:"보기·스타일"},
     ["카드 스타일 변경",(t1,ti,e3)=>{if(deck&&ti>=0)openFcStyleMenu(ti,e3);},"sub"],
     ["아래로 읽기",(t1,ti)=>{if(deck&&ti>=0)openTtsDialog({kind:"card",i:ti});} ],
+    ["순차 공개 켜기/끄기",(t1,ti)=>{if(deck&&ti>=0)fcToggleProg(fcSelSet.size>1&&fcSelSet.has(ti)?[...fcSelSet]:[ti]);} ],
     {hr:1},
     ["삭제",(t1,ti)=>{if(deck&&ti>=0)fcDeleteCards(fcSelSet.size>1&&fcSelSet.has(ti)?[...fcSelSet]:[ti]);},"danger"],
     ["닫기",()=>{}]
@@ -6739,7 +6788,7 @@ let fcView="list";        /* "list" | "study" */
 let fcFilter="";
 const fcAutocompleteOpen=()=>$("fcFilterHist")&&!$("fcFilterHist").classList.contains("hidden");
 let fcExp=[];             /* 모두 보이기 펼침 상태 */
-let fcOrder=[],fcOrderBuilt=-1,fcIdx=0,fcShuffle=false,fcFlipped=false,fcEdIdx=-1,fcOnlyLeft=false,fcOnlyDone=false,fcOnlyDue=false,fcLastRestored=0;
+let fcOrder=[],fcOrderBuilt=-1,fcIdx=0,fcShuffle=false,fcFlipped=false,fcStepI=0,fcEdIdx=-1,fcOnlyLeft=false,fcOnlyDone=false,fcOnlyDue=false,fcLastRestored=0;
 /* '모두 보이기'(목록) 화면 전용 순서 — 학습 화면의 fcOrder/fcShuffle과는 별개로 둔다.
    학습 화면 셔플은 안 외운 것만/외운 것만 필터와 얽혀 있어 그대로 재사용하면 목록에서
    카드가 사라지는 것처럼 보일 수 있어, 목록은 "전체를 보여주되 순서만" 섞도록 독립시켰다. */
@@ -6823,7 +6872,7 @@ function fcParseJSON(text){
     if(it&&typeof it==="object"){
       const q=it.q??it.question??it.front??it.문제??"";
       const a=it.a??it.answer??it.back??it.답??"";
-      return{q:String(q).trim(),a:String(a).trim(),done:!!it.done,link:it.link||"",image:it.image||"",color:it.color||"",fs:it.fs||0,bold:!!it.bold,italic:!!it.italic,underline:!!it.underline,strike:!!it.strike,bg:it.bg||"",hl:it.hl||"",st:it.st||"",shape:it.shape||"",ef:it.ef,ivl:it.ivl,reps:it.reps,lapses:it.lapses,due:it.due||"",last:it.last||"",hlr:it.hlr||[],sr:it.sr||[]};
+      return{q:String(q).trim(),a:String(a).trim(),done:!!it.done,link:it.link||"",image:it.image||"",color:it.color||"",fs:it.fs||0,bold:!!it.bold,italic:!!it.italic,underline:!!it.underline,strike:!!it.strike,bg:it.bg||"",hl:it.hl||"",st:it.st||"",shape:it.shape||"",ef:it.ef,ivl:it.ivl,reps:it.reps,lapses:it.lapses,due:it.due||"",last:it.last||"",hlr:it.hlr||[],sr:it.sr||[],prog:!!it.prog};
     }
     return{q:String(it).trim(),a:""};
   });
@@ -6910,7 +6959,7 @@ function fcOpenFile(text,name,ext,meta){
   /* done을 항상 false로 굳히고 st/shape/SM-2 필드를 통째로 빼놓으면, JSON으로 저장한
      덱을 다시 열 때마다(구글 드라이브 동기화 포함) 카드 스타일과 학습 진도가 매번
      사라진다 — fcParseJSON()이 이제 이 필드들을 실어주므로 여기서도 그대로 넘긴다. */
-  deck={name:name||"새 덱",cards:cards.map(c=>fcCard({q:c.q,a:c.a,done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,st:c.st,shape:c.shape,ef:c.ef,ivl:c.ivl,reps:c.reps,lapses:c.lapses,due:c.due,last:c.last,hlr:c.hlr,sr:c.sr}))};
+  deck={name:name||"새 덱",cards:cards.map(c=>fcCard({q:c.q,a:c.a,done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,st:c.st,shape:c.shape,ef:c.ef,ivl:c.ivl,reps:c.reps,lapses:c.lapses,due:c.due,last:c.last,hlr:c.hlr,sr:c.sr,prog:c.prog}))};
   fcAfterLoad(true);
   saveFcRecent(deck.name,text,ext||"",meta);
   toast("덱을 열었습니다 — 카드 "+deck.cards.length+"장"+(fcLastRestored>0?" · 외움 "+fcLastRestored+"장 복원":""));
@@ -6971,7 +7020,7 @@ function fcToTXT(){return deck.cards.map(c=>"Q. "+c.q+"\nA. "+c.a+"\n").join("\n
    유일한 무손실 형식이다 — 구글 드라이브 동기화는 항상 이 형식을 쓴다. fcCard()가
    이미 st/shape/ef/ivl/reps/lapses/due/last를 읽어들이므로, 여기서 빠뜨리면
    저장→다시 열기만으로 카드 스타일과 학습 진도가 조용히 사라진다. */
-function fcToJSON(){return JSON.stringify(deck.cards.map(c=>({q:c.q,a:c.a,done:!!c.done,link:c.link||"",image:c.image||"",color:c.color||"",fs:c.fs||0,bold:!!c.bold,italic:!!c.italic,underline:!!c.underline,strike:!!c.strike,bg:c.bg||"",hl:c.hl||"",st:c.st||"",shape:c.shape||"",ef:+c.ef||2.5,ivl:+c.ivl||0,reps:+c.reps||0,lapses:+c.lapses||0,due:c.due||"",last:c.last||"",hlr:c.hlr||[],sr:normalizeSR(c.sr||[])})),null,2)+"\n";}
+function fcToJSON(){return JSON.stringify(deck.cards.map(c=>({q:c.q,a:c.a,done:!!c.done,link:c.link||"",image:c.image||"",color:c.color||"",fs:c.fs||0,bold:!!c.bold,italic:!!c.italic,underline:!!c.underline,strike:!!c.strike,bg:c.bg||"",hl:c.hl||"",st:c.st||"",shape:c.shape||"",ef:+c.ef||2.5,ivl:+c.ivl||0,reps:+c.reps||0,lapses:+c.lapses||0,due:c.due||"",last:c.last||"",...(c.prog?{prog:true}:{}),hlr:c.hlr||[],sr:normalizeSR(c.sr||[])})),null,2)+"\n";}
 
 /* ═══ 플래시카드: 렌더링 ═══ */
 function buildOrder(){
@@ -7037,7 +7086,7 @@ function fcRenderList(){
     if(!fcMatchCard(c))return;
     shown++;
     html+='<div class="fitem'+(c.done?" done":"")+(fcSelSet.has(i)?" sel":"")+'" data-i="'+i+'">'
-      +'<div class="fcard"><span class="fnum">'+(i+1)+'</span><span class="fqtext">'+richRangeHtml(c.q,0,c.hlr,c.sr,c)+'</span>'
+      +'<div class="fcard"><span class="fnum">'+(i+1)+'</span>'+(c.prog?'<span class="fprogTag" title="순차 공개 카드">순차</span>':'')+'<span class="fqtext">'+richRangeHtml(c.q,0,c.hlr,c.sr,c)+'</span>'
       +'<span class="fmedia">'+(c.image?'<img class="fthumb" data-open-img="1" src="'+escA(c.image)+'" alt="첨부 이미지">':'')+(c.link?'<button class="flink" data-open-link="1">링크</button>':'')+'</span>'
       +'<button class="fedit" title="카드 편집">'+PEN_IC+'</button>'
       +'<span class="fchev">'+CHEV+'</span></div>'
@@ -7126,8 +7175,11 @@ function fcRenderStudy(){
   $("fcStage").style.display="";$("fcProg").style.display="";$("fcGrade").style.display="";
   $("fcEmptyStudy").style.display="none";
   const curIdx=fcOrder[fcIdx],c=deck.cards[curIdx];
+  if(!fcFlipped)fcStepI=0;
+  const pgv=fcStepFor(c);
   $("fcQTxt").innerHTML=fcFaceHtml(c.q,c,0);
-  $("fcATxt").innerHTML=fcFaceHtml(c.a,c,1);
+  $("fcATxt").innerHTML=fcFaceHtml(c.a,c,1,pgv===null?undefined:pgv);
+  fcRenderStepBar(c);
   fcApplyTextStyle($("fcQTxt"),c);fcApplyTextStyle($("fcATxt"),c);
   fcApplyCardShape($("fcFaceQ"),c);fcApplyCardShape($("fcFaceA"),c);
   fcBindMediaScope($("fcQTxt"),curIdx);fcBindMediaScope($("fcATxt"),curIdx);
@@ -7145,6 +7197,54 @@ function fcRenderStudy(){
   $("fcShuffle").classList.toggle("on",fcShuffle);
   $("fcOnlyLeft").classList.toggle("on",fcOnlyLeft);
   $("fcOnlyDone").classList.toggle("on",fcOnlyDone);
+}
+/* ── 순차 공개 학습 ──
+   prog가 켜져 있고 답에 팔레트 색 형광펜이 있는 카드만 단계 공개를 쓴다. 그 외 카드는
+   예전처럼 누를 때마다 앞/뒤만 뒤집힌다. 단계(fcStepI)는 "답에 실제로 쓰인 순위 목록"의
+   인덱스라서 1·3·5순위만 칠해도 빈 단계 없이 차례로 열린다. */
+function fcProgLv(c){return c&&c.prog?progLevels(c):[];}
+function fcStepFor(c){const lv=fcProgLv(c);if(!lv.length)return null;return lv[Math.max(0,Math.min(fcStepI,lv.length-1))];}
+function fcCurCard(){return deck&&fcOrder.length?deck.cards[fcOrder[fcIdx]]:null;}
+function fcAdvance(){
+  if(!deck||!deck.cards.length)return;
+  const c=fcCurCard(),lv=fcProgLv(c);
+  if(!lv.length){fcFlipped=!fcFlipped;fcRenderStudy();return;}
+  if(!fcFlipped){fcFlipped=true;fcStepI=0;}
+  else if(fcStepI<lv.length-1)fcStepI++;
+  else{fcFlipped=false;fcStepI=0;}
+  fcRenderStudy();
+}
+function fcStepBack(){
+  const c=fcCurCard(),lv=fcProgLv(c);
+  if(!lv.length)return;
+  if(fcFlipped&&fcStepI>0)fcStepI--;
+  else if(fcFlipped){fcFlipped=false;fcStepI=0;}
+  fcRenderStudy();
+}
+function fcStepAll(){
+  const c=fcCurCard(),lv=fcProgLv(c);
+  if(!lv.length)return;
+  fcFlipped=true;fcStepI=lv.length-1;fcRenderStudy();
+}
+function fcStepTo(i){
+  const c=fcCurCard(),lv=fcProgLv(c);
+  if(!lv.length||i<0||i>=lv.length)return;
+  fcFlipped=true;fcStepI=i;fcRenderStudy();
+}
+const FC_HINT_DEFAULT="카드를 누르면 답이 나타납니다 · 좌우로 밀어서 넘기기";
+function fcRenderStepBar(c){
+  const bar=$("fcStepBar"),hint=$("fcHint");if(!bar)return;
+  const lv=fcProgLv(c);
+  if(!lv.length){bar.style.display="none";bar.innerHTML="";if(hint)hint.textContent=FC_HINT_DEFAULT;return;}
+  const cnt=progCounts(c);
+  let h='<span class="stLbl">순차 공개</span><span class="stChips">';
+  lv.forEach((l,i)=>{
+    const shown=fcFlipped&&i<=fcStepI;
+    h+='<button type="button" class="stChip'+(shown?' on':'')+(fcFlipped&&i===fcStepI?' cur':'')+'" data-st="'+i+'" style="background:'+HL_BRIGHT[l]+'" title="'+l+'순위 · '+cnt[l]+'곳">'+l+'</button>';
+  });
+  h+='</span><span class="stBtns"><button type="button" id="fcStepPrev" data-stact="prev">‹ 이전 단계</button><button type="button" id="fcStepAll" data-stact="all">모두 보기</button></span>';
+  bar.innerHTML=h;bar.style.display="";
+  if(hint)hint.textContent=!fcFlipped?"카드를 누르면 답이 나타나고, 이어서 누를 때마다 다음 순위가 공개됩니다":(fcStepI<lv.length-1?"누르면 다음 순위가 공개됩니다 ("+(fcStepI+1)+" / "+lv.length+"단계)":"모두 공개됨 · 한 번 더 누르면 문제 면으로 돌아갑니다");
 }
 function fcMove(d){
   if(!deck||!deck.cards.length)return;
@@ -7171,6 +7271,7 @@ function fcOpenCard(i){
   fcEdUtilCloseAll();
   switchFcEdTab("q",false);
   renderFcEditPreviews();
+  fcEdProgSync();
   fcSelectSingle(i);
   $("fcCardModal").classList.remove("hidden");
   try{$("fcEdQ").focus();}catch(e){}
@@ -7779,7 +7880,7 @@ function driveApplyRemoteQuiet(kind,text,f,folderId){
   }else{
     let cards;
     try{cards=fcParseAny(text,"json");if(!cards||!cards.length)return;}catch(e){return;}
-    deck={name:nm||(deck?deck.name:"새 덱"),cards:cards.map(c=>fcCard({q:c.q,a:c.a,done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,st:c.st,shape:c.shape,ef:c.ef,ivl:c.ivl,reps:c.reps,lapses:c.lapses,due:c.due,last:c.last,hlr:c.hlr,sr:c.sr}))};
+    deck={name:nm||(deck?deck.name:"새 덱"),cards:cards.map(c=>fcCard({q:c.q,a:c.a,done:!!c.done,link:c.link,image:c.image,color:c.color,fs:c.fs,bold:c.bold,italic:c.italic,underline:c.underline,strike:c.strike,bg:c.bg,hl:c.hl,st:c.st,shape:c.shape,ef:c.ef,ivl:c.ivl,reps:c.reps,lapses:c.lapses,due:c.due,last:c.last,hlr:c.hlr,sr:c.sr,prog:c.prog}))};
     buildOrder();buildListOrder();
     if(fcIdx>=deck.cards.length)fcIdx=Math.max(0,deck.cards.length-1);
     fcExp=deck.cards.map(()=>false);
@@ -8369,8 +8470,12 @@ addEventListener("pointerup",()=>{fcTrack=false;});
 addEventListener("pointercancel",()=>{fcTrack=false;});
 $("fcFlip").addEventListener("click",()=>{
   if(fcMoved){fcMoved=false;return;}
-  fcFlipped=!fcFlipped;
-  $("fcFlip").classList.toggle("flipped",fcFlipped);
+  fcAdvance();
+});
+$("fcStepBar").addEventListener("click",e=>{
+  const ch=e.target.closest(".stChip");if(ch){fcStepTo(+ch.dataset.st);return;}
+  const b=e.target.closest("[data-stact]");if(!b)return;
+  if(b.dataset.stact==="prev")fcStepBack();else fcStepAll();
 });
 ["fcEdQ","fcEdA"].forEach(id=>{const f=$(id);["select","keyup","mouseup","click","focus","touchend"].forEach(ev=>f.addEventListener(ev,()=>fcEdSelCap(f)));});
 document.addEventListener("selectionchange",()=>{const ae=document.activeElement;if(ae&&(ae.id==="fcEdQ"||ae.id==="fcEdA"))fcEdSelCap(ae);});
@@ -8406,6 +8511,22 @@ $("fcEdA").addEventListener("input",()=>{
 $("fcEdA").addEventListener("compositionend",()=>{fcEdASyncModel();});
 /* 형광펜 색 적용 — 스와치 클릭과 Ctrl+D 단축키가 공유(노드 편집기의 edApplyHighlight와 동일 구조). */
 let fcEdLastHlColor="#FCA000";
+function fcToggleProg(ids){
+  if(!deck)return;
+  ids=ids.filter(i=>i>=0&&i<deck.cards.length);if(!ids.length)return;
+  const on=!deck.cards[ids[0]].prog;
+  ids.forEach(i=>{deck.cards[i].prog=on;});
+  fcStepI=0;fcFlipped=false;
+  scheduleFcUndo();fcRender();
+  const noLv=on?ids.filter(i=>!progLevels(deck.cards[i]).length).length:0;
+  toast("순차 공개 "+(on?"켬":"끔")+" — "+ids.length+"장"+(noLv?" (답에 팔레트 색 형광펜이 없는 "+noLv+"장은 그대로 보입니다)":""));
+}
+$("fcEdProg").addEventListener("click",()=>{
+  if(fcEdIdx<0||!deck||!deck.cards[fcEdIdx])return;
+  const c=deck.cards[fcEdIdx];c.prog=!c.prog;
+  scheduleFcUndo();if(fcView==="list")fcRenderList();else fcRenderStudy();fcEdProgSync();
+  toast(c.prog?"순차 공개 켬 — 답의 형광펜 색 순위(0~7)대로 하나씩 공개됩니다":"순차 공개 끔");
+});
 function fcApplyHighlight(color){
   if(fcEdIdx<0||!deck)return;
   const c=deck.cards[fcEdIdx],rng=cardEditorRange();
@@ -8417,6 +8538,7 @@ function fcApplyHighlight(color){
   toast((rng.t===0?"문제":"답")+"의 선택 영역에 형광펜을 적용했습니다");
   $("fcEdFloatHl").classList.remove("show");
 }
+document.querySelectorAll(".edSw,.fcEdSw").forEach(b=>{const l=hlLevel(b.dataset.c);if(l>=0){b.dataset.lv=String(l);b.title=(b.title?b.title+" · ":"")+l+"순위 (순차 공개 단계)";}});
 document.querySelectorAll(".fcEdSw").forEach(b=>{const keep=e=>{e.preventDefault();fcEdSnapCap();};b.addEventListener("mousedown",keep);b.addEventListener("pointerdown",keep);b.addEventListener("touchstart",()=>fcEdSnapCap(),{passive:true});b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();fcApplyHighlight(b.dataset.c);});});
 /* "형광펜 지우기": 선택 영역이 있으면 그 구간만, 없으면(팝업을 그냥 눌렀을 때) 카드 전체를 지운다 — 노드 편집기와 동일. */
 (()=>{
@@ -8559,7 +8681,9 @@ addEventListener("keydown",e=>{
   if(fcView==="study"){
     if(e.key==="ArrowRight")fcMove(1);
     else if(e.key==="ArrowLeft")fcMove(-1);
-    else if(e.key===" "||e.key==="Enter"){e.preventDefault();fcFlipped=!fcFlipped;fcRenderStudy();}
+    else if(e.key===" "||e.key==="Enter"){e.preventDefault();fcAdvance();}
+    else if(e.key==="ArrowUp"){const lv=fcProgLv(fcCurCard());if(lv.length){e.preventDefault();fcStepBack();}}
+    else if(e.key==="ArrowDown"){const lv=fcProgLv(fcCurCard());if(lv.length){e.preventDefault();fcAdvance();}}
     return;
   }
   if(fcView!=="list")return;
@@ -8841,7 +8965,7 @@ function driveTreeImportInto(kind,parentId){
   $("driveImportInput").click();
 }
 function fcBlankDeckJSON(){
-  return JSON.stringify([{q:"",a:"",done:false,link:"",image:"",color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",st:"",shape:"",ef:2.5,ivl:0,reps:0,lapses:0,due:"",last:"",hlr:[],sr:[]}],null,2)+"\n";
+  return JSON.stringify([{q:"",a:"",done:false,link:"",image:"",color:"",fs:0,bold:false,italic:false,underline:false,strike:false,bg:"",hl:"",st:"",shape:"",ef:2.5,ivl:0,reps:0,lapses:0,due:"",last:"",prog:false,hlr:[],sr:[]}],null,2)+"\n";
 }
 async function driveTreeNewFile(kind,parentId){
   const v=prompt("새 파일 이름",kind==="map"?"새 맵":"새 덱");
