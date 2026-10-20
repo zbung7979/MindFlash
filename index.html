@@ -719,7 +719,7 @@ html[data-hue="indigo"][data-theme="dark"]{--bg:#161524;--bar:#1a182d;--guide:#3
 /* ── 노드 편집 · 카드 편집 공용: 선택 시 뜨는 서식 툴바 (2025 리디자인) ──
    카드 편집기(#fcEdFloatBar/#fcEdFloatHl)는 노드 편집기와 완전히 동일한 모양·동작이
    되도록 같은 규칙을 그대로 공유한다(가위 버튼만 카드 쪽에 없음). */
-#edFloatBar,#fcEdFloatBar{position:fixed;z-index:80;display:flex;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.22);padding:5px;opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+#edFloatBar,#fcEdFloatBar{position:fixed;z-index:80;display:flex;align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.22);padding:5px;max-width:calc(100vw - 16px);flex-wrap:wrap;justify-content:center;opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
 #edFloatBar.show,#fcEdFloatBar.show{opacity:1;pointer-events:auto;transform:translateY(0)}
 #edFloatBar button,#fcEdFloatBar button{border:0;background:none;color:var(--c0t);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 #edFloatBar button:hover,#fcEdFloatBar button:hover{background:var(--rowhover)}
@@ -4758,16 +4758,47 @@ $("editModal").addEventListener("keydown",e=>{
   else if(!e.shiftKey&&k==="d"){e.preventDefault();edApplyHighlight(edLastHlColor);}
 });
 /* ── 선택 시 뜨는 서식 툴바: 위치 계산·표시 ── */
+/* 선택 서식 툴바를 "선택한 글자 바로 위"에 둔다. 예전에는 입력칸(메모) 맨 위에 고정해서,
+   메모가 길어 아래쪽을 스크롤해 편집할 때 툴바가 화면 밖(맨 위)으로 사라졌다. 이제는 선택
+   영역의 화면 좌표를 기준으로 위 → 아래 → 화면 안쪽 순으로 자리를 찾고, 항상 화면 안에
+   들어오게 고정한다. 스크롤할 때마다 다시 계산한다(아래 scroll 리스너). */
+function floatPlaceNearSelection(field,bar){
+  let rc=null;
+  try{
+    const sel=getSelection();
+    if(sel&&sel.rangeCount&&!sel.isCollapsed){
+      const rg=sel.getRangeAt(0);
+      if(field.contains(rg.startContainer)&&field.contains(rg.endContainer)){
+        const rs=[...rg.getClientRects()].filter(x=>x.width>0||x.height>0);
+        if(rs.length){
+          const top=Math.min(...rs.map(x=>x.top)),bottom=Math.max(...rs.map(x=>x.bottom));
+          const first=rs[0],left=Math.min(...rs.map(x=>x.left)),right=Math.max(...rs.map(x=>x.right));
+          rc={top:top,bottom:bottom,left:left,right:right,width:right-left,ftop:first.top};
+        }
+      }
+    }
+  }catch(e){}
+  if(!rc){const r=field.getBoundingClientRect();rc={top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,ftop:r.top};}
+  const bw=bar.offsetWidth||260,bh=bar.offsetHeight||40,vh=innerHeight,vw=innerWidth;
+  let top=rc.top-bh-8;
+  if(top<8){
+    top=rc.bottom+8;
+    if(top+bh>vh-8)top=Math.max(8,Math.min(rc.top+8,vh-bh-8));
+  }
+  top=Math.max(8,Math.min(top,vh-bh-8));
+  let left=rc.left+(rc.width-bw)/2;
+  left=Math.max(8,Math.min(left,vw-bw-8));
+  bar.style.top=top+"px";bar.style.left=left+"px";
+}
+addEventListener("scroll",()=>{
+  if($("edFloatBar").classList.contains("show"))edFloatPositionBar();
+  if($("fcEdFloatBar").classList.contains("show"))fcEdFloatPositionBar();
+},true);
 function edFloatPositionBar(){
   const ta=(edFloatKind===1)?$("edNote"):$("edText"),bar=$("edFloatBar");
   if(!ta||!bar)return;
-  const r=ta.getBoundingClientRect();
-  const bw=bar.offsetWidth||260,bh=bar.offsetHeight||40;
-  let top=r.top-bh-8;
-  if(top<8)top=Math.min(r.top+8,innerHeight-bh-8);
-  let left=r.left+(r.width-bw)/2;
-  left=Math.max(8,Math.min(left,innerWidth-bw-8));
-  bar.style.top=top+"px";bar.style.left=left+"px";
+  floatPlaceNearSelection(ta,bar);
+  if($("edFloatHl").classList.contains("show"))edHlPosition();
 }
 function edFloatShow(kind){
   if(kind!==undefined)edFloatKind=kind;
@@ -8568,13 +8599,8 @@ document.querySelectorAll(".fcEdSw").forEach(b=>{const keep=e=>{e.preventDefault
 function fcEdFloatPositionBar(){
   const ta=(fcEdFloatKind===1)?$("fcEdA"):$("fcEdQ"),bar=$("fcEdFloatBar");
   if(!ta||!bar)return;
-  const r=ta.getBoundingClientRect();
-  const bw=bar.offsetWidth||260,bh=bar.offsetHeight||40;
-  let top=r.top-bh-8;
-  if(top<8)top=Math.min(r.top+8,innerHeight-bh-8);
-  let left=r.left+(r.width-bw)/2;
-  left=Math.max(8,Math.min(left,innerWidth-bw-8));
-  bar.style.top=top+"px";bar.style.left=left+"px";
+  floatPlaceNearSelection(ta,bar);
+  if($("fcEdFloatHl").classList.contains("show"))fcEdHlPosition();
 }
 function fcEdFloatShow(kind){
   if(kind!==undefined)fcEdFloatKind=kind;
